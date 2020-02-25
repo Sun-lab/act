@@ -1,0 +1,6 @@
+Cell.Type,rsid,Chromosome,position,p.value,nearest gene,distance to gene
+Eosinophils,rs73109443,chr7,44764995,2.74E-08,PPIA ,31685
+Mast cells resting,rs13090962,chr3,60126844,4.03E-09,FHIT,377534
+Neutrophils,rs74559644,chr3,22212385,3.67E-08,ZNF385D-AS2,232557
+NK cells resting,rs7831750,chr8,11248049,1.05E-09,LINC00529,423
+T cells follicular helper,rs410543,chr6,138717323,1.71E-08,GVQW2,7888

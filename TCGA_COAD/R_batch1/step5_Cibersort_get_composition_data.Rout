@@ -1,0 +1,117 @@
+
+R version 3.4.1 (2017-06-30) -- "Single Candle"
+Copyright (C) 2017 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> library(nnls)
+> library(quantreg)
+Loading required package: SparseM
+
+Attaching package: ‘SparseM’
+
+The following object is masked from ‘package:base’:
+
+    backsolve
+
+> 
+> # ------------------------------------------------------------
+> # run CIBERSORT
+> # ------------------------------------------------------------
+> 
+> source('CIBERSORT.R')
+Warning message:
+package ‘preprocessCore’ was built under R version 3.4.2 
+> 
+> CiberRun <- function(X, Y, QN = T){
++ # read in data
++ 
++   X = data.matrix(X)
++   Y = data.matrix(Y)
++ 
++ # anti-log if max < 50 in mixture file
++   if(max(Y) < 50) {Y = exp(Y)}
++ 
++ # quantile normalization of mixture file
++   if(QN == TRUE){
++     tmpc = colnames(Y)
++     tmpr = rownames(Y)
++     Y = normalize.quantiles(Y)
++     colnames(Y) = tmpc
++     rownames(Y) = tmpr
++   }
++ 
++ # intersect genes
++   Xgns = row.names(X)
++   Ygns = row.names(Y)
++   genes = sort(intersect(Xgns, Ygns))
++   length(genes)
++ 
++   Y = Y[match(genes,Ygns),]
++   X = X[match(genes,Xgns),]
++ 
++   dim(X)
++   dim(Y)
++ 
++ # standardize sig matrix
++   Xsd = (X - mean(X)) / sd(as.vector(X))
++ 
++ # iterate through mixtures
++ 
++   w.svm = matrix(nrow=ncol(Y), ncol=ncol(X))
++   colnames(w.svm) = colnames(X)
++   rownames(w.svm) = colnames(Y)
++ 
++   for(itor in 1:ncol(Y)){
++   
++     y = Y[,itor]
++     ysd = (y - mean(y)) / sd(y)
++   
++   # run SVR core algorithm
++     result = CoreAlg(Xsd, ysd)
++ 
++   # get results
++     w.svm[itor,] = result$w
++   }
++   return(w.svm)
++ }
+> 
+> # ------------------------------------------------------------
+> # run CIBERSORT using LM22.txt and original gene expression data
+> # ------------------------------------------------------------
+> 
+> sig_matrix   = '../data/LM22.txt'
+> mixture_file = '../data/expresssion_COAD_data.txt'
+> 
+> X = read.table(sig_matrix,header=T,sep="\t",row.names=1,check.names=F)
+> Y = read.table(mixture_file, header=T, sep="\t", row.names=1,check.names=F)
+> 
+> lm22.ori = CiberRun(X, Y, QN = F)
+> lm22.ori[1:5,1:5]
+      B cells naive B cells memory Plasma cells T cells CD8 T cells CD4 naive
+X6650    0.07717046     0.00000000  0.097978190  0.05534288        0.00000000
+X2677    0.09294823     0.00000000  0.005472619  0.07493917        0.00000000
+X6780    0.04973662     0.00000000  0.006965890  0.14300994        0.00000000
+X5656    0.00000000     0.01313791  0.000000000  0.01190357        0.04640192
+X6781    0.08633964     0.00000000  0.019043953  0.07094856        0.00000000
+> write.table(lm22.ori, file = "../data/COAD_composition.txt", 
++             append = FALSE,quote = FALSE, 
++             sep = "\t", row.names = TRUE, col.names = TRUE)
+> 
+> q(save = 'no')
+> proc.time()
+   user  system elapsed 
+289.015  44.240 163.835 

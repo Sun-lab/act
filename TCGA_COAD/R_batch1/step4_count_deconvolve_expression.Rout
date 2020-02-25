@@ -1,0 +1,280 @@
+
+R version 3.4.1 (2017-06-30) -- "Single Candle"
+Copyright (C) 2017 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> rm(list = ls())
+> 
+> count_file = "../data/expression_v2_counts.txt"
+> info_file  = "../data/expression_v2_info.txt"
+> samp_file  = "../data/expression_v2_sample.txt"
+> 
+> # ------------------------------------------------------------
+> # read in data
+> # ------------------------------------------------------------
+> 
+> datE = read.table(file = count_file, sep = "\t",
++ header = TRUE, as.is = TRUE)
+> dim(datE)
+[1] 17986   450
+> datE[1:2, 1:5]
+                   X6650 X2677 X6780 X5656 X6781
+ENSG00000000003.13  9632  7277  3520 11630  1113
+ENSG00000000005.5     63   123    15   108     3
+> 
+> infoE = read.table(file = info_file, sep = "\t",
++                     header = TRUE, as.is = TRUE,  quote="")
+> dim(infoE)
+[1] 17986     8
+> infoE[1:2, 1:5]
+              geneId  chr strand     start       end
+1 ENSG00000000003.13 chrX      - 100627109 100639991
+2  ENSG00000000005.5 chrX      + 100584802 100599885
+> table(infoE$chr)
+
+ chr1 chr10 chr11 chr12 chr13 chr14 chr15 chr16 chr17 chr18 chr19  chr2 chr20 
+ 1834   666  1009   950   319   615   559   862  1099   239  1256  1204   493 
+chr21 chr22  chr3  chr4  chr5  chr6  chr7  chr8  chr9  chrM  chrX  chrY 
+  182   474   995   647   799   929   924   615   682    20   594    20 
+> 
+> table(rownames(datE) == infoE$gene)
+
+ TRUE 
+17986 
+> 
+> datE = data.matrix(datE)
+> 
+> dim(datE)
+[1] 17986   450
+> datE[1:2, 1:5]
+                   X6650 X2677 X6780 X5656 X6781
+ENSG00000000003.13  9632  7277  3520 11630  1113
+ENSG00000000005.5     63   123    15   108     3
+> 
+> coad = read.table(samp_file, sep="\t",
++             as.is=TRUE, header=TRUE)
+> dim(coad)
+[1] 450  47
+> coad[1:2,]
+                 analysis.submitter_id                 analysis.analysis_id
+1 171f6436-748a-4072-9ef6-e90d8cd9b465 31e9b072-09bb-4bd7-a8ca-6bbdccfc56f6
+2 97503aa9-93a5-4ff6-bb19-203ea235c2bf eb8e8c69-7402-4df8-bfbb-def75beaa8f5
+                             analysis.input_files.file_name
+1 76ffce10-7645-48aa-811f-214e9252c90d_gdc_realn_rehead.bam
+2 7632cc5b-45d4-4b71-b653-e2780b3fca81_gdc_realn_rehead.bam
+  analysis.input_files.file_size        associated_entities.entity_id
+1                     6960963367 0b0bbc77-a9f3-4298-ba21-587d10209b0b
+2                     3055359230 43310315-1797-422f-82d9-04be6f16225a
+           associated_entities.case_id associated_entities.entity_submitter_id
+1 6cd8d2dd-5545-43b0-b796-ae0506d62eb8            TCGA-A6-6650-01A-11R-1774-07
+2 d976782c-90c1-421d-b83c-7fc2617e2709            TCGA-A6-2677-01A-01R-0821-07
+  tss participant sample portion plate center
+1  A6        6650    01A     11R  1774      7
+2  A6        2677    01A     01R  0821      7
+                               case_id           demographic.demographic_id
+1 6cd8d2dd-5545-43b0-b796-ae0506d62eb8 e97aa7ba-4b50-59fa-b603-f7a9657229ac
+2 d976782c-90c1-421d-b83c-7fc2617e2709 0fa0b722-54aa-589a-ba12-11afe5060707
+   demographic.ethnicity demographic.gender          demographic.race
+1 not hispanic or latino             female black or african american
+2 not hispanic or latino             female                     white
+  demographic.submitter_id     demographic.updated_datetime
+1 TCGA-A6-6650_demographic 2016-05-16T10:54:04.193504-05:00
+2 TCGA-A6-2677_demographic 2016-05-16T10:55:38.818950-05:00
+  demographic.year_of_birth demographic.year_of_death
+1                      1941                        NA
+2                      1941                        NA
+  diagnoses.age_at_diagnosis diagnoses.classification_of_tumor
+1                      25516                      not reported
+2                      25143                      not reported
+  diagnoses.days_to_birth diagnoses.days_to_death
+1                  -25516                      NA
+2                  -25143                     740
+  diagnoses.days_to_last_follow_up               diagnoses.diagnosis_id
+1                              627 4a27df98-2f99-51e4-a0d8-f324ed8ea8bc
+2                              541 1b22285c-890a-5cb1-8a8b-5434ef479f18
+  diagnoses.last_known_disease_status diagnoses.morphology
+1                        not reported               8140/3
+2                        not reported               8140/3
+  diagnoses.primary_diagnosis diagnoses.prior_malignancy
+1                       c18.2               not reported
+2                       c18.2               not reported
+  diagnoses.progression_or_recurrence diagnoses.site_of_resection_or_biopsy
+1                        not reported                                 c18.2
+2                        not reported                                 c18.2
+  diagnoses.submitter_id diagnoses.tissue_or_organ_of_origin
+1 TCGA-A6-6650_diagnosis                               c18.2
+2 TCGA-A6-2677_diagnosis                               c18.2
+  diagnoses.tumor_grade diagnoses.tumor_stage       diagnoses.updated_datetime
+1          not reported             stage iia 2016-05-16T10:54:04.193504-05:00
+2          not reported            stage iiic 2016-05-16T10:55:38.818950-05:00
+  diagnoses.vital_status exposures.bmi                exposures.exposure_id
+1                  alive   0.003581862 2c815065-4a2b-5c7a-9872-06f8c85259fd
+2                   dead   0.002156250 59056466-cb70-5bd0-a6c1-dfedeae44d9c
+  exposures.height exposures.submitter_id       exposures.updated_datetime
+1            162.6  TCGA-A6-6650_exposure 2016-05-16T10:54:04.193504-05:00
+2            160.0  TCGA-A6-2677_exposure 2016-05-16T10:55:38.818950-05:00
+  exposures.weight bcr_patient_barcode
+1             94.7        TCGA-A6-6650
+2             55.2        TCGA-A6-2677
+> 
+> # ----------------------------------------------------------------------------
+> # Normalize gene expression by read-depth
+> # ----------------------------------------------------------------------------
+> 
+> load('../data/Gene_Lengths.RData')
+> class(GeneLengths.Mat)
+[1] "data.frame"
+> head(GeneLengths.Mat)
+          Gencode.ID Exonic      Ensembl.ID
+1 ENSG00000000003.13   4535 ENSG00000000003
+2  ENSG00000000005.5   1610 ENSG00000000005
+3 ENSG00000000419.11   1207 ENSG00000000419
+4 ENSG00000000457.12   6883 ENSG00000000457
+5 ENSG00000000460.15   5967 ENSG00000000460
+6 ENSG00000000938.11   3474 ENSG00000000938
+> 
+> 
+> table(GeneLengths.Mat$Gencode.ID %in% rownames(datE)) 
+
+FALSE  TRUE 
+42497 17986 
+> length(rownames(datE))
+[1] 17986
+> 
+> GeneLength = GeneLengths.Mat[match(rownames(datE), GeneLengths.Mat$Gencode.ID), ]
+> dim(GeneLength)
+[1] 17986     3
+> 
+> #log(T_{ij} / read-depth of sample i / gene length of gene j)
+> tot = colSums(datE)
+> s75 = apply(datE, 2, quantile, prob = 0.75)
+> 
+> cor(tot, s75)
+[1] 0.9872331
+> 
+> datE = log(t(t(datE + 1) / s75) / GeneLength$Exonic) 
+> dim(datE)
+[1] 17986   450
+> 
+> 
+> # ------------------------------------------------------------
+> # read in reference data
+> # ------------------------------------------------------------
+> 
+> lm22 = read.table("../data/LM22-ref-sample_logged.txt",  sep = "\t",
++   header = TRUE, as.is = TRUE)
+> dim(lm22)
+[1] 11866   113
+> lm22[1:2,1:2]
+     A_LW_mastcellctrl.Chtanova_immune.A_LW_mastcellctr
+A1CF                                           4.878153
+A2M                                            6.727443
+     A_MF_ControlMASTCELL.Chtanova_immune.A_MF_ControlMASTCEL
+A1CF                                                 5.066851
+A2M                                                  6.719448
+> lm22 = data.matrix(lm22)
+> 
+> sam = read.table("../data/LM22-ref-sample_info.txt" , sep = "\t",
++   header = TRUE, as.is = TRUE)
+> dim(sam)
+[1] 113   4
+> sam[1:2,]
+                                                  sampleID           cellType
+1       A_LW_mastcellctrl.Chtanova_immune.A_LW_mastcellctr Mast cells resting
+2 A_MF_ControlMASTCELL.Chtanova_immune.A_MF_ControlMASTCEL Mast cells resting
+         label    study
+1 Mast resting Chtanova
+2 Mast resting Chtanova
+> 
+> table(sam$label)
+
+               B memory                 B naive                  CD4+ T 
+                      8                       7                       3 
+CD4+ T memory activated   CD4+ T memory resting                  CD8+ T 
+                      3                       3                       4 
+    Dendritic activated       Dendritic resting             Eosinophils 
+                      6                       6                       2 
+         Macrophages M0          Macrophages M1          Macrophages M2 
+                     12                       3                       3 
+         Mast activated            Mast resting               Monocytes 
+                      2                       2                      12 
+            Neutrophils            NK activated              NK resting 
+                      8                      11                       4 
+                 Plasma                    T gd                     Tfh 
+                      7                       2                       3 
+                  Tregs 
+                      2 
+> 
+> # ------------------------------------------------------------
+> # take intersection
+> # ------------------------------------------------------------
+> 
+> genes = intersect(infoE$hgnc_symbol, rownames(lm22))
+> length(genes)
+[1] 9713
+> length(unique(genes))
+[1] 9713
+> genes[c(1:5, length(genes))]
+[1] "TSPAN6"    "TNMD"      "DPM1"      "SCYL3"     "C1orf112"  "LINC00921"
+> 
+> mat1 = match(genes, rownames(lm22))
+> mat2 = match(genes, infoE$hgnc_symbol)
+> 
+> lm22 = lm22[mat1,]
+> dim(lm22)
+[1] 9713  113
+> lm22[1:2,1:2]
+       A_LW_mastcellctrl.Chtanova_immune.A_LW_mastcellctr
+TSPAN6                                           6.540146
+TNMD                                             1.322454
+       A_MF_ControlMASTCELL.Chtanova_immune.A_MF_ControlMASTCEL
+TSPAN6                                                 5.808989
+TNMD                                                   2.157625
+> 
+> infoE = infoE[mat2,]
+> dim(infoE)
+[1] 9713    8
+> infoE[1:2, 1:5]
+              geneId  chr strand     start       end
+1 ENSG00000000003.13 chrX      - 100627109 100639991
+2  ENSG00000000005.5 chrX      + 100584802 100599885
+> 
+> datE = datE[mat2,]
+> dim(datE)
+[1] 9713  450
+> rownames(datE) = genes
+> datE[1:2, 1:5]
+            X6650     X2677      X6780      X5656      X6781
+TSPAN6  -7.148285 -6.808355  -7.905982  -6.625497  -9.092209
+TNMD   -11.126761 -9.845094 -12.264302 -10.259987 -13.686036
+> 
+> table(infoE$hgnc_symbol == rownames(lm22))
+
+TRUE 
+9713 
+> 
+> # ------------------------------------------------------------
+> # write out data
+> # ------------------------------------------------------------
+> 
+> write.table(datE, file = "../data/expresssion_COAD_data.txt", append = FALSE,
++ quote = FALSE, sep = "\t", row.names = TRUE, col.names = TRUE)
+> 
+> q(save = "no")
+> proc.time()
+   user  system elapsed 
+ 14.673   1.991  16.688 

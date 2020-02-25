@@ -1,0 +1,339 @@
+
+R version 3.4.1 (2017-06-30) -- "Single Candle"
+Copyright (C) 2017 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> args=(commandArgs(TRUE))
+> chr1 = as.numeric(args[1])
+> chr1 
+[1] 6
+> 
+> date <- Sys.Date()
+> 
+> sampleFile = "/fh/fast/sun_w/licai/COAD/data_GWAS/tcga_gwas/sample2kp_dosageData.csv"
+> sam2kp = read.csv(sampleFile, header = F, as.is = T)$V1
+> nSam = length(sam2kp)
+> nSam
+[1] 318
+> 
+> PCfile   = "/fh/fast/sun_w/research/TCGA/COAD/QC_PCA/final_data2_CaucasianOnly_COAD.txt"
+> geno_dir = "/fh/fast/sun_w/research/TCGA/COAD/GDC/data_geno/step12_get_dosage"
+> maf_dir  = "/fh/fast/sun_w/licai/COAD/data_GWAS/tcga_gwas/maf/"
+> 
+> # ------------------------------------------------------------
+> #CaucasianOnly 
+> # ------------------------------------------------------------
+> tcga_pca2 = read.table(PCfile,
++                        sep = "\t", header = TRUE, as.is = TRUE)
+> dim(tcga_pca2)
+[1] 359  12
+> tcga_pca2[1:5, ]
+                       TCGA_ID
+1 TCGA-A6-2670-10A-01D-0819-01
+2 TCGA-A6-2671-10A-01D-1406-01
+3 TCGA-A6-2672-10A-01D-0824-01
+4 TCGA-A6-2674-10A-01D-0819-01
+5 TCGA-A6-2675-10A-01D-1717-01
+                                                  cel_files     noHM_PC1
+1      VENUE_p_TCGAb28_SNP_N_GenomeWideSNP_6_F11_568910.CEL -0.013925972
+2 FAMED_p_TCGAb66and76_SNP_N_GenomeWideSNP_6_E02_730006.CEL -0.009249593
+3 SCENA_p_TCGAb29and30_SNP_N_GenomeWideSNP_6_F07_569040.CEL -0.029457317
+4      VENUE_p_TCGAb28_SNP_N_GenomeWideSNP_6_E03_568892.CEL -0.027005863
+5    GRIPS_p_TCGA_b116_SNP_N_GenomeWideSNP_6_D03_781430.CEL  0.098222522
+      noHM_PC2     noHM_PC3     noHM_PC4    noHM_PC5     noHM_PC6     noHM_PC7
+1  0.011467491  0.004964584 0.0199928540 -0.05707810 -0.038209984 -0.028253014
+2  0.004130469  0.015622426 0.0032226720 -0.02884763  0.022578593 -0.042497864
+3 -0.010559315  0.003939198 0.0089461523  0.02576372 -0.020155345  0.009971436
+4 -0.016831758 -0.027757305 0.0190914144 -0.04933242  0.063496682  0.063601688
+5  0.023360098  0.040205444 0.0009877077  0.06261283 -0.001305643  0.070044522
+      noHM_PC8     noHM_PC9   noHM_PC10
+1 -0.024789448  0.002975205 -0.02002722
+2  0.042985739 -0.009349792  0.09630500
+3 -0.009824531 -0.062196589 -0.04275102
+4 -0.058795499  0.019370328  0.02235268
+5  0.065831037 -0.015614155  0.06671175
+> 
+> coad = read.table("../data/expression_v2_sample.txt", sep="\t",
++                   as.is=TRUE, header=TRUE)
+> dim(coad)
+[1] 450  47
+> coad[1:2,]
+                 analysis.submitter_id                 analysis.analysis_id
+1 171f6436-748a-4072-9ef6-e90d8cd9b465 31e9b072-09bb-4bd7-a8ca-6bbdccfc56f6
+2 97503aa9-93a5-4ff6-bb19-203ea235c2bf eb8e8c69-7402-4df8-bfbb-def75beaa8f5
+                             analysis.input_files.file_name
+1 76ffce10-7645-48aa-811f-214e9252c90d_gdc_realn_rehead.bam
+2 7632cc5b-45d4-4b71-b653-e2780b3fca81_gdc_realn_rehead.bam
+  analysis.input_files.file_size        associated_entities.entity_id
+1                     6960963367 0b0bbc77-a9f3-4298-ba21-587d10209b0b
+2                     3055359230 43310315-1797-422f-82d9-04be6f16225a
+           associated_entities.case_id associated_entities.entity_submitter_id
+1 6cd8d2dd-5545-43b0-b796-ae0506d62eb8            TCGA-A6-6650-01A-11R-1774-07
+2 d976782c-90c1-421d-b83c-7fc2617e2709            TCGA-A6-2677-01A-01R-0821-07
+  tss participant sample portion plate center
+1  A6        6650    01A     11R  1774      7
+2  A6        2677    01A     01R  0821      7
+                               case_id           demographic.demographic_id
+1 6cd8d2dd-5545-43b0-b796-ae0506d62eb8 e97aa7ba-4b50-59fa-b603-f7a9657229ac
+2 d976782c-90c1-421d-b83c-7fc2617e2709 0fa0b722-54aa-589a-ba12-11afe5060707
+   demographic.ethnicity demographic.gender          demographic.race
+1 not hispanic or latino             female black or african american
+2 not hispanic or latino             female                     white
+  demographic.submitter_id     demographic.updated_datetime
+1 TCGA-A6-6650_demographic 2016-05-16T10:54:04.193504-05:00
+2 TCGA-A6-2677_demographic 2016-05-16T10:55:38.818950-05:00
+  demographic.year_of_birth demographic.year_of_death
+1                      1941                        NA
+2                      1941                        NA
+  diagnoses.age_at_diagnosis diagnoses.classification_of_tumor
+1                      25516                      not reported
+2                      25143                      not reported
+  diagnoses.days_to_birth diagnoses.days_to_death
+1                  -25516                      NA
+2                  -25143                     740
+  diagnoses.days_to_last_follow_up               diagnoses.diagnosis_id
+1                              627 4a27df98-2f99-51e4-a0d8-f324ed8ea8bc
+2                              541 1b22285c-890a-5cb1-8a8b-5434ef479f18
+  diagnoses.last_known_disease_status diagnoses.morphology
+1                        not reported               8140/3
+2                        not reported               8140/3
+  diagnoses.primary_diagnosis diagnoses.prior_malignancy
+1                       c18.2               not reported
+2                       c18.2               not reported
+  diagnoses.progression_or_recurrence diagnoses.site_of_resection_or_biopsy
+1                        not reported                                 c18.2
+2                        not reported                                 c18.2
+  diagnoses.submitter_id diagnoses.tissue_or_organ_of_origin
+1 TCGA-A6-6650_diagnosis                               c18.2
+2 TCGA-A6-2677_diagnosis                               c18.2
+  diagnoses.tumor_grade diagnoses.tumor_stage       diagnoses.updated_datetime
+1          not reported             stage iia 2016-05-16T10:54:04.193504-05:00
+2          not reported            stage iiic 2016-05-16T10:55:38.818950-05:00
+  diagnoses.vital_status exposures.bmi                exposures.exposure_id
+1                  alive   0.003581862 2c815065-4a2b-5c7a-9872-06f8c85259fd
+2                   dead   0.002156250 59056466-cb70-5bd0-a6c1-dfedeae44d9c
+  exposures.height exposures.submitter_id       exposures.updated_datetime
+1            162.6  TCGA-A6-6650_exposure 2016-05-16T10:54:04.193504-05:00
+2            160.0  TCGA-A6-2677_exposure 2016-05-16T10:55:38.818950-05:00
+  exposures.weight bcr_patient_barcode
+1             94.7        TCGA-A6-6650
+2             55.2        TCGA-A6-2677
+> table(coad$demographic.race)
+
+american indian or alaska native                            asian 
+                               1                               11 
+       black or african american                     not reported 
+                              59                              170 
+                           white 
+                             209 
+> 
+> tcga_pca2$TCGA_ID = sapply(strsplit(tcga_pca2$TCGA_ID, "-" ), 
++                            function(x) paste(x[1:3], collapse = '-')) 
+> coad = coad[match(sam2kp, coad$bcr_patient_barcode), ]
+> tcga_pca2 = tcga_pca2[match(sam2kp, tcga_pca2$TCGA_ID), ]
+> table(coad$bcr_patient_barcode ==tcga_pca2$TCGA_ID )
+
+TRUE 
+ 318 
+> 
+> # ------------------------------------------------------------
+> # covariates 
+> # ------------------------------------------------------------
+> adjustment_data = cbind(tcga_pca2[,c("TCGA_ID", paste0("noHM_PC", 1:4))], 
++                         coad[, c("demographic.gender", 'diagnoses.age_at_diagnosis','bcr_patient_barcode')])
+> rownames(adjustment_data) = coad[,"participant"]
+> adjustment_data[1:5,]
+          TCGA_ID     noHM_PC1     noHM_PC2     noHM_PC3     noHM_PC4
+2671 TCGA-A6-2671 -0.009249593  0.004130469  0.015622426 0.0032226720
+2674 TCGA-A6-2674 -0.027005863 -0.016831758 -0.027757305 0.0190914144
+2675 TCGA-A6-2675  0.098222522  0.023360098  0.040205444 0.0009877077
+2678 TCGA-A6-2678 -0.030282958 -0.012259686 -0.004480849 0.0090161451
+2679 TCGA-A6-2679 -0.018358115 -0.022296358 -0.011677011 0.0168677738
+     demographic.gender diagnoses.age_at_diagnosis bcr_patient_barcode
+2671               male                      31329        TCGA-A6-2671
+2674               male                      26292        TCGA-A6-2674
+2675               male                      28813        TCGA-A6-2675
+2678             female                      16030        TCGA-A6-2678
+2679             female                      26820        TCGA-A6-2679
+> dim(adjustment_data)
+[1] 318   8
+> 
+> 
+> # ------------------------------------------------------------
+> # immune cell composition
+> # ------------------------------------------------------------
+> 
+> CTcomp = read.table("../data/COAD_composition.txt", header=T, 
++                     sep="\t", row.names = 1, check.names=F)
+> rownames(CTcomp) = sub('^X','',rownames(CTcomp))
+> CTcomp[1:5,]
+     B cells naive B cells memory Plasma cells T cells CD8 T cells CD4 naive
+6650    0.07717046     0.00000000  0.097978190  0.05534288        0.00000000
+2677    0.09294823     0.00000000  0.005472619  0.07493917        0.00000000
+6780    0.04973662     0.00000000  0.006965890  0.14300994        0.00000000
+5656    0.00000000     0.01313791  0.000000000  0.01190357        0.04640192
+6781    0.08633964     0.00000000  0.019043953  0.07094856        0.00000000
+     T cells CD4 memory resting T cells CD4 memory activated
+6650                 0.28866610                    0.0000000
+2677                 0.08398989                    0.2799125
+6780                 0.03459845                    0.1510181
+5656                 0.00000000                    0.2157451
+6781                 0.14130676                    0.0000000
+     T cells follicular helper T cells regulatory (Tregs) T cells gamma delta
+6650                  0.000000                0.050141264                   0
+2677                  0.000000                0.000000000                   0
+6780                  0.035209                0.000000000                   0
+5656                  0.000000                0.026583945                   0
+6781                  0.000000                0.004108277                   0
+     NK cells resting NK cells activated  Monocytes Macrophages M0
+6650       0.02411416         0.00000000 0.01152638      0.1697687
+2677       0.19233861         0.00000000 0.00000000      0.1548148
+6780       0.02254574         0.05276159 0.00000000      0.1199381
+5656       0.13388462         0.00000000 0.00000000      0.4395138
+6781       0.09723759         0.00000000 0.00000000      0.3672806
+     Macrophages M1 Macrophages M2 Dendritic cells resting
+6650     0.02226127    0.000000000              0.03218471
+2677     0.00000000    0.005258085              0.02470165
+6780     0.10344103    0.129836878              0.13650193
+5656     0.02189999    0.004715022              0.00000000
+6781     0.04962593    0.114697499              0.00000000
+     Dendritic cells activated Mast cells resting Mast cells activated
+6650                         0                  0           0.17008671
+2677                         0                  0           0.08509578
+6780                         0                  0           0.00000000
+5656                         0                  0           0.08621407
+6781                         0                  0           0.04941124
+      Eosinophils Neutrophils
+6650 0.0007591608           0
+2677 0.0005286233           0
+6780 0.0144367190           0
+5656 0.0000000000           0
+6781 0.0000000000           0
+> 
+> CTcomp = CTcomp + 0.0001
+> CTcomp = log(CTcomp/CTcomp$`Macrophages M0`)
+> CTcomp = CTcomp[rownames(adjustment_data), 
++                 -which(colnames(CTcomp) == "Macrophages M0")]
+> 
+> table(rownames(adjustment_data) == rownames(CTcomp))
+
+TRUE 
+ 318 
+> 
+> # ------------------------------------------------------------
+> # immune cell composition
+> # ------------------------------------------------------------
+> 
+> DoCiber <- function(g, cell_type, adjustment_data, datCiber){
++   dat = cbind(dosage = as.numeric(g), adjustment_data)
++   composition = datCiber[,cell_type ]
++   if(length(unique(g)) > 1 ){
++     fit1 <- try(lm(composition ~ . , data = dat ))
++     res = c(summary(fit1)$coefficients[2,])
++   }
++   else{ 
++     res = c(rep(NA, 4))
++   }
++   names(res) <- c('beta', 'sd', 't_value', 'p_value')
++   return(res)
++ }
+> 
+> 
+> # chr1 = 22
+> cat('chromosome', chr1, date(), '\n')
+chromosome 6 Tue Apr  9 13:01:20 2019 
+> 
+> # genotype file
+> Maf   = read.csv(paste0(maf_dir, "/maf_chr", chr1 , '.txt'), sep='\t' )
+> index = which(Maf$MAF >= 0.05 & Maf$MAF <= 1 - 0.05)
+> 
+> # genotype file and snpinfo
+> file  = paste0(geno_dir,"/dosage/chr",chr1,".rds")
+> dosage = readRDS(file)
+> 
+> dosage_barcode = sapply(strsplit(colnames(dosage), "-" ), 
++                         function(x) paste(x[1:3], collapse = '-')) 
+> snp_info = dosage[index, 1:5]
+> dosage   = dosage[index, match(sam2kp, dosage_barcode)]
+> dosage   = data.matrix(dosage)
+> 
+> table(rownames(CTcomp) == sapply(strsplit(colnames(dosage), "-" ), 
++                                  function(x) x[3] ))
+
+TRUE 
+ 318 
+> table(rownames(adjustment_data) == rownames(CTcomp))
+
+TRUE 
+ 318 
+> 
+> covs = c(paste0('noHM_PC', 1:4), "demographic.gender", "diagnoses.age_at_diagnosis")
+> 
+> # tasks = 20 
+> # groups = cut(1:nrow(dosage), breaks =tasks, include.lowest = T, labels = F)
+> # dos = lapply(1:tasks, function(x) dosage[which(groups ==x), ])
+> # 
+> # rm(dosage)
+> # gc()
+> 
+> for(cell_type in colnames(CTcomp)){
++   cat(cell_type, date(), ' \n')
++   Ciber = NULL
++   # for( d in 1:tasks){
++   #   Ciber_m = t(apply(dos[[d]], 1, DoCiber, cell_type, 
++   #                            adjustment_data = adjustment_data[, covs], 
++   #                            datCiber = CTcomp))
++   #   Ciber = rbind(Ciber, Ciber_m)
++   # }
++   #test
++   Ciber = t(apply(dosage, 1,DoCiber, cell_type, adjustment_data = adjustment_data[, covs], datCiber = CTcomp))
++   Ciber = cbind(Ciber, snp_info)
++   write.table(Ciber, 
++               file = paste0('/fh/fast/sun_w/licai/COAD/data_GWAS/tcga_gwas/log_ratio/', 
++                             "tcga_gwas_maf0.05_chr",chr1, '_', cell_type, '.txt'), quote = FALSE, 
++               sep = "\t", row.names = F, col.names = TRUE)
++   
++   
++ }
+B cells naive Tue Apr  9 13:04:31 2019  
+B cells memory Tue Apr  9 13:21:58 2019  
+Plasma cells Tue Apr  9 13:38:58 2019  
+T cells CD8 Tue Apr  9 13:55:50 2019  
+T cells CD4 naive Tue Apr  9 14:12:40 2019  
+T cells CD4 memory resting Tue Apr  9 14:29:40 2019  
+T cells CD4 memory activated Tue Apr  9 14:46:29 2019  
+T cells follicular helper Tue Apr  9 15:03:17 2019  
+T cells regulatory (Tregs) Tue Apr  9 15:19:58 2019  
+T cells gamma delta Tue Apr  9 15:36:35 2019  
+NK cells resting Tue Apr  9 15:53:20 2019  
+NK cells activated Tue Apr  9 16:09:58 2019  
+Monocytes Tue Apr  9 16:26:46 2019  
+Macrophages M1 Tue Apr  9 16:43:26 2019  
+Macrophages M2 Tue Apr  9 16:59:35 2019  
+Dendritic cells resting Tue Apr  9 17:15:49 2019  
+Dendritic cells activated Tue Apr  9 17:31:59 2019  
+Mast cells resting Tue Apr  9 17:48:10 2019  
+Mast cells activated Tue Apr  9 18:04:16 2019  
+Eosinophils Tue Apr  9 18:20:25 2019  
+Neutrophils Tue Apr  9 18:36:41 2019  
+> 
+> 
+> 
+> q(save = 'no')
+> proc.time()
+     user    system   elapsed 
+21053.224    10.838 21093.815 

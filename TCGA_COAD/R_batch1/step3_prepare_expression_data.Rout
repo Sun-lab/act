@@ -1,0 +1,649 @@
+
+R version 3.4.1 (2017-06-30) -- "Single Candle"
+Copyright (C) 2017 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> 
+> # ----------------------------------------------------------------------------
+> # Read in sample information
+> # ----------------------------------------------------------------------------
+> 
+> info = read.table("../data/metadata_clinic.txt",
++                   sep="\t", header=TRUE)
+> dim(info)
+[1] 456  33
+> info[1:2,]
+                               case_id           demographic.demographic_id
+1 14c13b05-abfe-472e-83a9-b28f60e58ad8 e57a8984-eaae-56de-947c-6a86c67e90f4
+2 38d65618-4857-490e-86b3-0a3f772a9f60 9842c8e6-ccab-5d13-93a3-58120a201b81
+   demographic.ethnicity demographic.gender demographic.race
+1 not hispanic or latino               male            white
+2 not hispanic or latino             female            white
+  demographic.submitter_id     demographic.updated_datetime
+1 TCGA-G4-6310_demographic 2016-05-16T10:53:45.063668-05:00
+2 TCGA-CK-5916_demographic 2016-05-16T10:51:50.560562-05:00
+  demographic.year_of_birth demographic.year_of_death
+1                      1939                        NA
+2                      1932                      2004
+  diagnoses.age_at_diagnosis diagnoses.classification_of_tumor
+1                      25243                      not reported
+2                      26024                      not reported
+  diagnoses.days_to_birth diagnoses.days_to_death
+1                  -25243                      NA
+2                  -26024                     643
+  diagnoses.days_to_last_follow_up               diagnoses.diagnosis_id
+1                             1935 de98e152-ae68-58f9-96c5-56fce3abb87c
+2                               NA 51cf0de9-7a10-5e62-8cbe-f68ebf3fa9b2
+  diagnoses.last_known_disease_status diagnoses.morphology
+1                        not reported               8140/3
+2                        not reported               8140/3
+  diagnoses.primary_diagnosis diagnoses.prior_malignancy
+1                       c18.9               not reported
+2                       c18.2               not reported
+  diagnoses.progression_or_recurrence diagnoses.site_of_resection_or_biopsy
+1                        not reported                                 c18.9
+2                        not reported                                 c18.2
+  diagnoses.submitter_id diagnoses.tissue_or_organ_of_origin
+1 TCGA-G4-6310_diagnosis                               c18.9
+2 TCGA-CK-5916_diagnosis                               c18.2
+  diagnoses.tumor_grade diagnoses.tumor_stage       diagnoses.updated_datetime
+1          not reported            stage iiib 2016-05-16T10:53:45.063668-05:00
+2          not reported               stage i 2016-05-16T10:51:50.560562-05:00
+  diagnoses.vital_status exposures.bmi                exposures.exposure_id
+1                  alive   0.003424772 73ad139f-0b7f-511f-b379-f47ea64f0c0d
+2                   dead            NA 8ac9a8dc-4131-52ea-bf22-fb564ea69dc9
+  exposures.height exposures.submitter_id       exposures.updated_datetime
+1              173  TCGA-G4-6310_exposure 2016-05-16T10:53:45.063668-05:00
+2               NA  TCGA-CK-5916_exposure 2016-05-16T10:51:50.560562-05:00
+  exposures.weight
+1            102.5
+2               NA
+> 
+> sam = read.table("../data/expression_sample2use_v1.txt", sep="\t", header=TRUE)
+> dim(sam)
+[1] 452  13
+> sam[1:2,]
+                 analysis.submitter_id                 analysis.analysis_id
+1 171f6436-748a-4072-9ef6-e90d8cd9b465 31e9b072-09bb-4bd7-a8ca-6bbdccfc56f6
+2 97503aa9-93a5-4ff6-bb19-203ea235c2bf eb8e8c69-7402-4df8-bfbb-def75beaa8f5
+                             analysis.input_files.file_name
+1 76ffce10-7645-48aa-811f-214e9252c90d_gdc_realn_rehead.bam
+2 7632cc5b-45d4-4b71-b653-e2780b3fca81_gdc_realn_rehead.bam
+  analysis.input_files.file_size        associated_entities.entity_id
+1                     6960963367 0b0bbc77-a9f3-4298-ba21-587d10209b0b
+2                     3055359230 43310315-1797-422f-82d9-04be6f16225a
+           associated_entities.case_id associated_entities.entity_submitter_id
+1 6cd8d2dd-5545-43b0-b796-ae0506d62eb8            TCGA-A6-6650-01A-11R-1774-07
+2 d976782c-90c1-421d-b83c-7fc2617e2709            TCGA-A6-2677-01A-01R-0821-07
+  tss participant sample portion plate center
+1  A6        6650    01A     11R  1774      7
+2  A6        2677    01A     01R  0821      7
+> 
+> info$bcr_patient_barcode = substr(info$demographic.submitter_id, 1, 12)
+> barcode = substr(sam$associated_entities.entity_submitter_id, 1, 12)
+> table(barcode %in% info$bcr_patient_barcode)
+
+FALSE  TRUE 
+    2   450 
+> 
+> barcode2kp = intersect(barcode, info$bcr_patient_barcode)
+> 
+> length(unique(barcode))
+[1] 452
+> info = info[match(barcode2kp, info$bcr_patient_barcode),]
+> dim(info)
+[1] 450  34
+> info[1:2,]
+                                 case_id           demographic.demographic_id
+420 6cd8d2dd-5545-43b0-b796-ae0506d62eb8 e97aa7ba-4b50-59fa-b603-f7a9657229ac
+291 d976782c-90c1-421d-b83c-7fc2617e2709 0fa0b722-54aa-589a-ba12-11afe5060707
+     demographic.ethnicity demographic.gender          demographic.race
+420 not hispanic or latino             female black or african american
+291 not hispanic or latino             female                     white
+    demographic.submitter_id     demographic.updated_datetime
+420 TCGA-A6-6650_demographic 2016-05-16T10:54:04.193504-05:00
+291 TCGA-A6-2677_demographic 2016-05-16T10:55:38.818950-05:00
+    demographic.year_of_birth demographic.year_of_death
+420                      1941                        NA
+291                      1941                        NA
+    diagnoses.age_at_diagnosis diagnoses.classification_of_tumor
+420                      25516                      not reported
+291                      25143                      not reported
+    diagnoses.days_to_birth diagnoses.days_to_death
+420                  -25516                      NA
+291                  -25143                     740
+    diagnoses.days_to_last_follow_up               diagnoses.diagnosis_id
+420                              627 4a27df98-2f99-51e4-a0d8-f324ed8ea8bc
+291                              541 1b22285c-890a-5cb1-8a8b-5434ef479f18
+    diagnoses.last_known_disease_status diagnoses.morphology
+420                        not reported               8140/3
+291                        not reported               8140/3
+    diagnoses.primary_diagnosis diagnoses.prior_malignancy
+420                       c18.2               not reported
+291                       c18.2               not reported
+    diagnoses.progression_or_recurrence diagnoses.site_of_resection_or_biopsy
+420                        not reported                                 c18.2
+291                        not reported                                 c18.2
+    diagnoses.submitter_id diagnoses.tissue_or_organ_of_origin
+420 TCGA-A6-6650_diagnosis                               c18.2
+291 TCGA-A6-2677_diagnosis                               c18.2
+    diagnoses.tumor_grade diagnoses.tumor_stage
+420          not reported             stage iia
+291          not reported            stage iiic
+          diagnoses.updated_datetime diagnoses.vital_status exposures.bmi
+420 2016-05-16T10:54:04.193504-05:00                  alive   0.003581862
+291 2016-05-16T10:55:38.818950-05:00                   dead   0.002156250
+                   exposures.exposure_id exposures.height
+420 2c815065-4a2b-5c7a-9872-06f8c85259fd            162.6
+291 59056466-cb70-5bd0-a6c1-dfedeae44d9c            160.0
+    exposures.submitter_id       exposures.updated_datetime exposures.weight
+420  TCGA-A6-6650_exposure 2016-05-16T10:54:04.193504-05:00             94.7
+291  TCGA-A6-2677_exposure 2016-05-16T10:55:38.818950-05:00             55.2
+    bcr_patient_barcode
+420        TCGA-A6-6650
+291        TCGA-A6-2677
+> 
+> sam = sam[match(barcode2kp, barcode),]
+> 
+> sam = cbind(sam, info)
+> dim(sam)
+[1] 450  47
+> sam[1:2,]
+                 analysis.submitter_id                 analysis.analysis_id
+1 171f6436-748a-4072-9ef6-e90d8cd9b465 31e9b072-09bb-4bd7-a8ca-6bbdccfc56f6
+2 97503aa9-93a5-4ff6-bb19-203ea235c2bf eb8e8c69-7402-4df8-bfbb-def75beaa8f5
+                             analysis.input_files.file_name
+1 76ffce10-7645-48aa-811f-214e9252c90d_gdc_realn_rehead.bam
+2 7632cc5b-45d4-4b71-b653-e2780b3fca81_gdc_realn_rehead.bam
+  analysis.input_files.file_size        associated_entities.entity_id
+1                     6960963367 0b0bbc77-a9f3-4298-ba21-587d10209b0b
+2                     3055359230 43310315-1797-422f-82d9-04be6f16225a
+           associated_entities.case_id associated_entities.entity_submitter_id
+1 6cd8d2dd-5545-43b0-b796-ae0506d62eb8            TCGA-A6-6650-01A-11R-1774-07
+2 d976782c-90c1-421d-b83c-7fc2617e2709            TCGA-A6-2677-01A-01R-0821-07
+  tss participant sample portion plate center
+1  A6        6650    01A     11R  1774      7
+2  A6        2677    01A     01R  0821      7
+                               case_id           demographic.demographic_id
+1 6cd8d2dd-5545-43b0-b796-ae0506d62eb8 e97aa7ba-4b50-59fa-b603-f7a9657229ac
+2 d976782c-90c1-421d-b83c-7fc2617e2709 0fa0b722-54aa-589a-ba12-11afe5060707
+   demographic.ethnicity demographic.gender          demographic.race
+1 not hispanic or latino             female black or african american
+2 not hispanic or latino             female                     white
+  demographic.submitter_id     demographic.updated_datetime
+1 TCGA-A6-6650_demographic 2016-05-16T10:54:04.193504-05:00
+2 TCGA-A6-2677_demographic 2016-05-16T10:55:38.818950-05:00
+  demographic.year_of_birth demographic.year_of_death
+1                      1941                        NA
+2                      1941                        NA
+  diagnoses.age_at_diagnosis diagnoses.classification_of_tumor
+1                      25516                      not reported
+2                      25143                      not reported
+  diagnoses.days_to_birth diagnoses.days_to_death
+1                  -25516                      NA
+2                  -25143                     740
+  diagnoses.days_to_last_follow_up               diagnoses.diagnosis_id
+1                              627 4a27df98-2f99-51e4-a0d8-f324ed8ea8bc
+2                              541 1b22285c-890a-5cb1-8a8b-5434ef479f18
+  diagnoses.last_known_disease_status diagnoses.morphology
+1                        not reported               8140/3
+2                        not reported               8140/3
+  diagnoses.primary_diagnosis diagnoses.prior_malignancy
+1                       c18.2               not reported
+2                       c18.2               not reported
+  diagnoses.progression_or_recurrence diagnoses.site_of_resection_or_biopsy
+1                        not reported                                 c18.2
+2                        not reported                                 c18.2
+  diagnoses.submitter_id diagnoses.tissue_or_organ_of_origin
+1 TCGA-A6-6650_diagnosis                               c18.2
+2 TCGA-A6-2677_diagnosis                               c18.2
+  diagnoses.tumor_grade diagnoses.tumor_stage       diagnoses.updated_datetime
+1          not reported             stage iia 2016-05-16T10:54:04.193504-05:00
+2          not reported            stage iiic 2016-05-16T10:55:38.818950-05:00
+  diagnoses.vital_status exposures.bmi                exposures.exposure_id
+1                  alive   0.003581862 2c815065-4a2b-5c7a-9872-06f8c85259fd
+2                   dead   0.002156250 59056466-cb70-5bd0-a6c1-dfedeae44d9c
+  exposures.height exposures.submitter_id       exposures.updated_datetime
+1            162.6  TCGA-A6-6650_exposure 2016-05-16T10:54:04.193504-05:00
+2            160.0  TCGA-A6-2677_exposure 2016-05-16T10:55:38.818950-05:00
+  exposures.weight bcr_patient_barcode
+1             94.7        TCGA-A6-6650
+2             55.2        TCGA-A6-2677
+> 
+> table(sam$tss)
+
+ 3L  4N  4T  5M  A6  AA  AD  AM  AU  AY  AZ  CA  CK  CM  D5  DM  F4  G4  NH  QG 
+  1   1   1   3  49 170  13   2   2  10  20  10  14  37  31  24  16  27   9   5 
+ QL  RU  SS  T9  WS 
+  1   1   1   1   1 
+> table(sam$demographic.race)
+
+american indian or alaska native                            asian 
+                               1                               11 
+       black or african american                     not reported 
+                              59                              170 
+                           white 
+                             209 
+> table(sam$demographic.gender)
+
+female   male 
+   213    237 
+> table(sam$demographic.ethnicity)
+
+    hispanic or latino not hispanic or latino           not reported 
+                     4                    266                    180 
+> table(sam$diagnoses.tumor_grade)
+
+not reported 
+         450 
+> table(sam$diagnoses.tumor_stage)
+
+not reported      stage i     stage ia     stage ii    stage iia    stage iib 
+          11           73            1           30          134           10 
+   stage iic    stage iii   stage iiia   stage iiib   stage iiic     stage iv 
+           1           20            8           57           41           45 
+   stage iva    stage ivb 
+          17            2 
+> 
+> # ----------------------------------------------------------------------------
+> # Read in expression data
+> # ----------------------------------------------------------------------------
+> 
+> dat = read.table("../data/expression_data_v1.txt", sep="\t", header=TRUE)
+> dim(dat)
+[1] 60488   452
+> dat[1:2,1:5]
+                   X6650 X2677 X6780 X5656 X6781
+ENSG00000000003.13  9632  7277  3520 11630  1113
+ENSG00000000005.5     63   123    15   108     3
+> 
+> samIDs = gsub("^X", "", colnames(dat))
+> table(sam$participant %in% samIDs)
+
+TRUE 
+ 450 
+> 
+> dat = dat[,match(sam$participant, samIDs)]
+> table(sam$participant == gsub("^X", "", colnames(dat)))
+
+TRUE 
+ 450 
+> 
+> # ----------------------------------------------------------------------------
+> # Read in gene location information
+> # ----------------------------------------------------------------------------
+> 
+> ff2 = "../data/gencode.v22.genes.txt"
+> 
+> infoE = read.table(ff2, sep = "\t", header = TRUE, as.is = TRUE, quote="")
+> dim(infoE)
+[1] 60483     8
+> infoE[1:2, ]
+              geneId  chr strand     start       end ensembl_gene_id
+1 ENSG00000000003.13 chrX      - 100627109 100639991 ENSG00000000003
+2  ENSG00000000005.5 chrX      + 100584802 100599885 ENSG00000000005
+  hgnc_symbol                                       description
+1      TSPAN6 tetraspanin 6 [Source:HGNC Symbol;Acc:HGNC:11858]
+2        TNMD   tenomodulin [Source:HGNC Symbol;Acc:HGNC:17757]
+> length(unique(infoE$geneId))
+[1] 60483
+> length(unique(infoE$ensembl_gene_id))
+[1] 60483
+> 
+> table(rownames(dat) %in% infoE$geneId)
+
+FALSE  TRUE 
+    5 60483 
+> rownames(dat)[which(! rownames(dat) %in% infoE$geneId)]
+[1] "__no_feature"           "__ambiguous"            "__too_low_aQual"       
+[4] "__not_aligned"          "__alignment_not_unique"
+> 
+> features = intersect(rownames(dat), infoE$geneId)
+> 
+> datE  = dat[match(features, rownames(dat)), ]
+> infoE = infoE[match(features, infoE$geneId), ]
+> dim(datE)
+[1] 60483   450
+> dim(infoE)
+[1] 60483     8
+> 
+> infoE[1:5, ]
+              geneId   chr strand     start       end ensembl_gene_id
+1 ENSG00000000003.13  chrX      - 100627109 100639991 ENSG00000000003
+2  ENSG00000000005.5  chrX      + 100584802 100599885 ENSG00000000005
+3 ENSG00000000419.11 chr20      -  50934867  50958555 ENSG00000000419
+4 ENSG00000000457.12  chr1      - 169849631 169894267 ENSG00000000457
+5 ENSG00000000460.15  chr1      + 169662007 169854080 ENSG00000000460
+  hgnc_symbol
+1      TSPAN6
+2        TNMD
+3        DPM1
+4       SCYL3
+5    C1orf112
+                                                                                                 description
+1                                                          tetraspanin 6 [Source:HGNC Symbol;Acc:HGNC:11858]
+2                                                            tenomodulin [Source:HGNC Symbol;Acc:HGNC:17757]
+3 dolichyl-phosphate mannosyltransferase polypeptide 1, catalytic subunit [Source:HGNC Symbol;Acc:HGNC:3005]
+4                                               SCY1 like pseudokinase 3 [Source:HGNC Symbol;Acc:HGNC:19285]
+5                                    chromosome 1 open reading frame 112 [Source:HGNC Symbol;Acc:HGNC:25565]
+> 
+> table(rownames(datE) == infoE$geneId)
+
+ TRUE 
+60483 
+> table(infoE$chr, useNA="ifany")
+
+ chr1 chr10 chr11 chr12 chr13 chr14 chr15 chr16 chr17 chr18 chr19  chr2 chr20 
+ 5397  2306  3381  3047  1383  2289  2247  2597  3111  1206  2997  4150  1436 
+chr21 chr22  chr3  chr4  chr5  chr6  chr7  chr8  chr9  chrM  chrX  chrY 
+  880  1385  3163  2633  2993  3001  2980  2444  2350    37  2476   594 
+> table(infoE$strand, useNA="ifany")
+
+    -     + 
+29905 30578 
+> table(is.na(infoE$ensembl_gene_id))
+
+FALSE 
+60483 
+> 
+> # ----------------------------------------------------------------------------
+> # Find a cutoff to filter out low expressed genes
+> # ----------------------------------------------------------------------------
+> 
+> datEA = data.matrix(datE)
+> 
+> rMin = apply(datEA, 1, min)
+> rMed = apply(datEA, 1, median)
+> r75  = apply(datEA, 1, quantile, probs = 0.75)
+> r90  = apply(datEA, 1, quantile, probs = 0.90)
+> 
+> summary(rMin)
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+   0.00    0.00    0.00   19.86    0.00 7809.00 
+> summary(rMed)
+    Min.  1st Qu.   Median     Mean  3rd Qu.     Max. 
+     0.0      0.0      0.0    506.3     29.0 285369.5 
+> summary(r75)
+    Min.  1st Qu.   Median     Mean  3rd Qu.     Max. 
+     0.0      0.0      1.0    797.3     59.0 471089.8 
+> summary(r90)
+    Min.  1st Qu.   Median     Mean  3rd Qu.     Max. 
+     0.0      0.0      2.0   1136.7    109.1 699790.1 
+> 
+> cor(rMin, rMed)
+[1] 0.9356245
+> cor(r75,  rMed)
+[1] 0.9934035
+> cor(r90,  rMed)
+[1] 0.9705268
+> 
+> cbind(infoE, rMin, rMed, r75)[which(rMin > 6000),]
+                  geneId   chr strand    start      end ensembl_gene_id
+1317  ENSG00000075624.12  chr7      -  5527151  5563784 ENSG00000075624
+6722  ENSG00000133112.15 chr13      - 45333471 45341370 ENSG00000133112
+10001 ENSG00000156508.16  chr6      - 73515750 73523797 ENSG00000156508
+15659  ENSG00000184009.8 chr17      - 81509971 81523847 ENSG00000184009
+17870  ENSG00000198712.1  chrM      +     7586     8269 ENSG00000198712
+17919  ENSG00000198804.2  chrM      +     5904     7445 ENSG00000198804
+17969  ENSG00000198886.2  chrM      +    10760    12137 ENSG00000198886
+21559  ENSG00000210082.2  chrM      +     1671     3229 ENSG00000210082
+      hgnc_symbol
+1317         ACTB
+6722         TPT1
+10001      EEF1A1
+15659       ACTG1
+17870      MT-CO2
+17919      MT-CO1
+17969      MT-ND4
+21559     MT-RNR2
+                                                                                                   description
+1317                                                              actin beta [Source:HGNC Symbol;Acc:HGNC:132]
+6722                           tumor protein, translationally-controlled 1 [Source:HGNC Symbol;Acc:HGNC:12022]
+10001                    eukaryotic translation elongation factor 1 alpha 1 [Source:HGNC Symbol;Acc:HGNC:3189]
+15659                                                          actin gamma 1 [Source:HGNC Symbol;Acc:HGNC:144]
+17870                       mitochondrially encoded cytochrome c oxidase II [Source:HGNC Symbol;Acc:HGNC:7421]
+17919                        mitochondrially encoded cytochrome c oxidase I [Source:HGNC Symbol;Acc:HGNC:7419]
+17969 mitochondrially encoded NADH:ubiquinone oxidoreductase core subunit 4 [Source:HGNC Symbol;Acc:HGNC:7459]
+21559                                       mitochondrially encoded 16S RNA [Source:HGNC Symbol;Acc:HGNC:7471]
+      rMin     rMed      r75
+1317  7809 205221.5 293115.8
+6722  6445 121215.0 183092.0
+10001 6128 192711.0 269148.2
+15659 7181 149182.0 212029.2
+17870 6397 191780.0 326037.5
+17919 7573 278314.0 471089.8
+17969 6560 285369.5 460068.5
+21559 6091 166296.5 291734.0
+> 
+> pdf("../figures/expression_cts_summary.pdf", width = 6, height = 6)
+> par(mfrow = c(2, 2), mar = c(5, 4, 1, 1), bty = "n")
+> hist(log10(1 + rMin), xlab = "log10(min + 1)", main = "")
+> hist(log10(1 + rMed), xlab = "log10(median + 1)", main = "")
+> hist(log10(1 + r75),  xlab = "log10(75 percentile + 1)", main = "")
+> hist(log10(1 + r90),  xlab = "log10(90 percentile + 1)", main = "")
+> dev.off()
+null device 
+          1 
+> 
+> summary(rMin[rMed >= 10])
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+   0.00    1.00   15.00   67.06   59.00 7809.00 
+> summary(rMed[r75 >= 20])
+    Min.  1st Qu.   Median     Mean  3rd Qu.     Max. 
+     1.0     62.0    491.2   1700.7   1591.5 285369.5 
+> 
+> table(rMed >= 10)
+
+FALSE  TRUE 
+42567 17916 
+> table(r75 >= 10)
+
+FALSE  TRUE 
+40031 20452 
+> table(r75 >= 20)
+
+FALSE  TRUE 
+42497 17986 
+> 
+> w2kp = which(r75 >= 20)
+> 
+> dim(datEA)
+[1] 60483   450
+> datEA = datEA[w2kp, ]
+> dim(datEA)
+[1] 17986   450
+> 
+> dim(infoE)
+[1] 60483     8
+> infoE = infoE[w2kp, ]
+> dim(infoE)
+[1] 17986     8
+> 
+> if(! all(rownames(datEA) == infoE$gene) ){
++   stop("gene name mismatch\n")
++ }
+> 
+> # ----------------------------------------------------------------------------
+> # Normalize gene expression by read-depth
+> # ----------------------------------------------------------------------------
+> 
+> tot = colSums(datEA)
+> s75 = apply(datEA, 2, quantile, prob = 0.75)
+> 
+> cor(tot, s75)
+[1] 0.9872331
+> 
+> pdf("../figures/expression_total_vs_75_percentile.pdf", width = 4, height = 4)
+> par(mar = c(5, 4, 1, 1), bty = "n")
+> plot(tot / 1e6, s75 / 1000, xlab = "total reads (million)",
++      ylab = "75 percentile (thousand)", cex = 0.5)
+> dev.off()
+null device 
+          1 
+> 
+> nDat = t(log10(t((datEA + 1)) / s75))
+> dim(nDat)
+[1] 17986   450
+> 
+> # ----------------------------------------------------------------------------
+> # Run PCA using gene expression data, check possible outlier
+> # these PCs do include many batch effect information
+> # ----------------------------------------------------------------------------
+> 
+> datR14Pr = nDat - rowMeans(nDat, na.rm = TRUE)
+> 
+> datR14Pr[is.na(datR14Pr)] = 0
+> covdatR1 = t(datR14Pr) %*% datR14Pr / nrow(datR14Pr)
+> dim(covdatR1)
+[1] 450 450
+> prdatR1 = eigen(covdatR1)
+> 
+> prdatR1$values[1:20]
+ [1] 5.5987244 3.6023136 3.3861838 2.1821093 1.7839549 1.2553362 1.0472736
+ [8] 0.8303469 0.7484256 0.7219607 0.6449582 0.5843576 0.5360248 0.5170963
+[15] 0.4814522 0.4307785 0.4113366 0.3994090 0.3704333 0.3651575
+> 
+> PC1 = prdatR1$vectors[, 1]
+> PC2 = prdatR1$vectors[, 2]
+> PC3 = prdatR1$vectors[, 3]
+> 
+> r1 = rgb(0.8,0.2,0.2,0.6)
+> b1 = rgb(0.2,0.2,0.8,0.6)
+> 
+> pdf("../figures/expression_PCs_log_TReC.pdf", width = 6, height = 6)
+> par(mar = c(5, 4, 1, 1), mfrow = c(2, 2), bty = "n")
+> barplot(prdatR1$values[1:20], main = "", xlab = "Index", ylab = "Eigen-value")
+> 
+> plot(PC1, PC2, cex = 0.8)
+> plot(PC1, PC3, cex = 0.8)
+> plot(PC2, PC3, cex = 0.8)
+> 
+> dev.off()
+null device 
+          1 
+> 
+> 
+> # ----------------------------------------------------------------------------
+> # Write out data and information
+> # ----------------------------------------------------------------------------
+> 
+> dim(datEA)
+[1] 17986   450
+> datEA[1:2, 1:5]
+                   X6650 X2677 X6780 X5656 X6781
+ENSG00000000003.13  9632  7277  3520 11630  1113
+ENSG00000000005.5     63   123    15   108     3
+> 
+> write.table(datEA, file = "../data/expression_v2_counts.txt", append = FALSE,
++             quote = FALSE, sep = "\t", row.names = TRUE, col.names = TRUE)
+> 
+> dim(infoE)
+[1] 17986     8
+> infoE[1:5, ]
+              geneId   chr strand     start       end ensembl_gene_id
+1 ENSG00000000003.13  chrX      - 100627109 100639991 ENSG00000000003
+2  ENSG00000000005.5  chrX      + 100584802 100599885 ENSG00000000005
+3 ENSG00000000419.11 chr20      -  50934867  50958555 ENSG00000000419
+4 ENSG00000000457.12  chr1      - 169849631 169894267 ENSG00000000457
+5 ENSG00000000460.15  chr1      + 169662007 169854080 ENSG00000000460
+  hgnc_symbol
+1      TSPAN6
+2        TNMD
+3        DPM1
+4       SCYL3
+5    C1orf112
+                                                                                                 description
+1                                                          tetraspanin 6 [Source:HGNC Symbol;Acc:HGNC:11858]
+2                                                            tenomodulin [Source:HGNC Symbol;Acc:HGNC:17757]
+3 dolichyl-phosphate mannosyltransferase polypeptide 1, catalytic subunit [Source:HGNC Symbol;Acc:HGNC:3005]
+4                                               SCY1 like pseudokinase 3 [Source:HGNC Symbol;Acc:HGNC:19285]
+5                                    chromosome 1 open reading frame 112 [Source:HGNC Symbol;Acc:HGNC:25565]
+> 
+> write.table(infoE, file = "../data/expression_v2_info.txt", append = FALSE,
++             quote = FALSE, sep = "\t", row.names = FALSE, col.names = TRUE)
+> 
+> dim(sam)
+[1] 450  47
+> sam[1:2,]
+                 analysis.submitter_id                 analysis.analysis_id
+1 171f6436-748a-4072-9ef6-e90d8cd9b465 31e9b072-09bb-4bd7-a8ca-6bbdccfc56f6
+2 97503aa9-93a5-4ff6-bb19-203ea235c2bf eb8e8c69-7402-4df8-bfbb-def75beaa8f5
+                             analysis.input_files.file_name
+1 76ffce10-7645-48aa-811f-214e9252c90d_gdc_realn_rehead.bam
+2 7632cc5b-45d4-4b71-b653-e2780b3fca81_gdc_realn_rehead.bam
+  analysis.input_files.file_size        associated_entities.entity_id
+1                     6960963367 0b0bbc77-a9f3-4298-ba21-587d10209b0b
+2                     3055359230 43310315-1797-422f-82d9-04be6f16225a
+           associated_entities.case_id associated_entities.entity_submitter_id
+1 6cd8d2dd-5545-43b0-b796-ae0506d62eb8            TCGA-A6-6650-01A-11R-1774-07
+2 d976782c-90c1-421d-b83c-7fc2617e2709            TCGA-A6-2677-01A-01R-0821-07
+  tss participant sample portion plate center
+1  A6        6650    01A     11R  1774      7
+2  A6        2677    01A     01R  0821      7
+                               case_id           demographic.demographic_id
+1 6cd8d2dd-5545-43b0-b796-ae0506d62eb8 e97aa7ba-4b50-59fa-b603-f7a9657229ac
+2 d976782c-90c1-421d-b83c-7fc2617e2709 0fa0b722-54aa-589a-ba12-11afe5060707
+   demographic.ethnicity demographic.gender          demographic.race
+1 not hispanic or latino             female black or african american
+2 not hispanic or latino             female                     white
+  demographic.submitter_id     demographic.updated_datetime
+1 TCGA-A6-6650_demographic 2016-05-16T10:54:04.193504-05:00
+2 TCGA-A6-2677_demographic 2016-05-16T10:55:38.818950-05:00
+  demographic.year_of_birth demographic.year_of_death
+1                      1941                        NA
+2                      1941                        NA
+  diagnoses.age_at_diagnosis diagnoses.classification_of_tumor
+1                      25516                      not reported
+2                      25143                      not reported
+  diagnoses.days_to_birth diagnoses.days_to_death
+1                  -25516                      NA
+2                  -25143                     740
+  diagnoses.days_to_last_follow_up               diagnoses.diagnosis_id
+1                              627 4a27df98-2f99-51e4-a0d8-f324ed8ea8bc
+2                              541 1b22285c-890a-5cb1-8a8b-5434ef479f18
+  diagnoses.last_known_disease_status diagnoses.morphology
+1                        not reported               8140/3
+2                        not reported               8140/3
+  diagnoses.primary_diagnosis diagnoses.prior_malignancy
+1                       c18.2               not reported
+2                       c18.2               not reported
+  diagnoses.progression_or_recurrence diagnoses.site_of_resection_or_biopsy
+1                        not reported                                 c18.2
+2                        not reported                                 c18.2
+  diagnoses.submitter_id diagnoses.tissue_or_organ_of_origin
+1 TCGA-A6-6650_diagnosis                               c18.2
+2 TCGA-A6-2677_diagnosis                               c18.2
+  diagnoses.tumor_grade diagnoses.tumor_stage       diagnoses.updated_datetime
+1          not reported             stage iia 2016-05-16T10:54:04.193504-05:00
+2          not reported            stage iiic 2016-05-16T10:55:38.818950-05:00
+  diagnoses.vital_status exposures.bmi                exposures.exposure_id
+1                  alive   0.003581862 2c815065-4a2b-5c7a-9872-06f8c85259fd
+2                   dead   0.002156250 59056466-cb70-5bd0-a6c1-dfedeae44d9c
+  exposures.height exposures.submitter_id       exposures.updated_datetime
+1            162.6  TCGA-A6-6650_exposure 2016-05-16T10:54:04.193504-05:00
+2            160.0  TCGA-A6-2677_exposure 2016-05-16T10:55:38.818950-05:00
+  exposures.weight bcr_patient_barcode
+1             94.7        TCGA-A6-6650
+2             55.2        TCGA-A6-2677
+> 
+> write.table(sam, file = "../data/expression_v2_sample.txt", append = FALSE,
++             quote = FALSE, sep = "\t", row.names = FALSE, col.names = TRUE)
+> 
+> q(save="no")
+> proc.time()
+   user  system elapsed 
+ 29.614   0.225  30.274 

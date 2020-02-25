@@ -1,0 +1,2958 @@
+
+R version 3.4.1 (2017-06-30) -- "Single Candle"
+Copyright (C) 2017 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> 
+> library(survival)
+Warning message:
+package ‘survival’ was built under R version 3.4.3 
+> ## --------------------------------------------------------
+> ## read in sample clinical data
+> ## --------------------------------------------------------
+> 
+> clinic_dat = read.table("../data/expression_v2_sample.txt", sep="\t",
++                         as.is=TRUE, header=TRUE)
+> clinic_dat$surv_time = ifelse(is.na(clinic_dat$diagnoses.days_to_death),
++                               clinic_dat$diagnoses.days_to_last_follow_up,
++                               clinic_dat$diagnoses.days_to_death)
+> clinic_dat$stage = gsub("stage ", "", clinic_dat$diagnoses.tumor_stage)
+> clinic_dat$stage = gsub('[a-c]', "", clinic_dat$stage)
+> clinic_dat$stage[which(clinic_dat$stage=="not reported")] = NA
+> clinic_dat$death = ifelse(clinic_dat$diagnoses.vital_status == 'dead', 1, 0)
+> clinic_dat$gender = clinic_dat$demographic.gender
+> clinic_dat$age_at_diagnosis = clinic_dat$diagnoses.age_at_diagnosis
+> 
+> 
+> ## --------------------------------------------------------
+> ## read in immune cell composition file
+> ## --------------------------------------------------------
+> 
+> CTcomp = read.table("../data/COAD_composition.txt", header=T, 
++                     sep="\t", row.names = 1, check.names=F)
+> rownames(CTcomp) = sub('^X','',rownames(CTcomp))
+> CTcomp[1:5,]
+     B cells naive B cells memory Plasma cells T cells CD8 T cells CD4 naive
+6650    0.07717046     0.00000000  0.097978190  0.05534288        0.00000000
+2677    0.09294823     0.00000000  0.005472619  0.07493917        0.00000000
+6780    0.04973662     0.00000000  0.006965890  0.14300994        0.00000000
+5656    0.00000000     0.01313791  0.000000000  0.01190357        0.04640192
+6781    0.08633964     0.00000000  0.019043953  0.07094856        0.00000000
+     T cells CD4 memory resting T cells CD4 memory activated
+6650                 0.28866610                    0.0000000
+2677                 0.08398989                    0.2799125
+6780                 0.03459845                    0.1510181
+5656                 0.00000000                    0.2157451
+6781                 0.14130676                    0.0000000
+     T cells follicular helper T cells regulatory (Tregs) T cells gamma delta
+6650                  0.000000                0.050141264                   0
+2677                  0.000000                0.000000000                   0
+6780                  0.035209                0.000000000                   0
+5656                  0.000000                0.026583945                   0
+6781                  0.000000                0.004108277                   0
+     NK cells resting NK cells activated  Monocytes Macrophages M0
+6650       0.02411416         0.00000000 0.01152638      0.1697687
+2677       0.19233861         0.00000000 0.00000000      0.1548148
+6780       0.02254574         0.05276159 0.00000000      0.1199381
+5656       0.13388462         0.00000000 0.00000000      0.4395138
+6781       0.09723759         0.00000000 0.00000000      0.3672806
+     Macrophages M1 Macrophages M2 Dendritic cells resting
+6650     0.02226127    0.000000000              0.03218471
+2677     0.00000000    0.005258085              0.02470165
+6780     0.10344103    0.129836878              0.13650193
+5656     0.02189999    0.004715022              0.00000000
+6781     0.04962593    0.114697499              0.00000000
+     Dendritic cells activated Mast cells resting Mast cells activated
+6650                         0                  0           0.17008671
+2677                         0                  0           0.08509578
+6780                         0                  0           0.00000000
+5656                         0                  0           0.08621407
+6781                         0                  0           0.04941124
+      Eosinophils Neutrophils
+6650 0.0007591608           0
+2677 0.0005286233           0
+6780 0.0144367190           0
+5656 0.0000000000           0
+6781 0.0000000000           0
+> 
+> apply(CTcomp, 2, function(x) sum(x == 0))
+               B cells naive               B cells memory 
+                          14                          436 
+                Plasma cells                  T cells CD8 
+                          57                           33 
+           T cells CD4 naive   T cells CD4 memory resting 
+                         419                           77 
+T cells CD4 memory activated    T cells follicular helper 
+                         212                          303 
+  T cells regulatory (Tregs)          T cells gamma delta 
+                          99                          446 
+            NK cells resting           NK cells activated 
+                          44                          362 
+                   Monocytes               Macrophages M0 
+                         324                           11 
+              Macrophages M1               Macrophages M2 
+                          80                           85 
+     Dendritic cells resting    Dendritic cells activated 
+                         107                          374 
+          Mast cells resting         Mast cells activated 
+                         348                           80 
+                 Eosinophils                  Neutrophils 
+                         281                          347 
+> 
+> CTcomp = CTcomp + 0.0001
+> CTcomp = log(CTcomp/CTcomp$`Macrophages M0`)
+> CTcomp = CTcomp[, -which(colnames(CTcomp) == "Macrophages M0")]
+> 
+> table(rownames(CTcomp) %in% clinic_dat$participant)
+
+TRUE 
+ 450 
+> clinic_dat = clinic_dat[match(rownames(CTcomp),clinic_dat$participant),]
+> table(clinic_dat$participant == rownames(CTcomp))
+
+TRUE 
+ 450 
+> 
+> table(is.na(clinic_dat$surv_time))
+
+FALSE  TRUE 
+  449     1 
+> table(is.na(clinic_dat$death))
+
+FALSE 
+  450 
+> table(is.na(clinic_dat$stage))
+
+FALSE  TRUE 
+  439    11 
+> table(is.na(clinic_dat$gender))
+
+FALSE 
+  450 
+> table(is.na(clinic_dat$age_at_diagnosis))
+
+FALSE  TRUE 
+  448     2 
+> 
+> ## --------------------------------------------------------
+> ## Cox regression: age, gender
+> ## --------------------------------------------------------
+> # CTcomp_qn = t(apply(CTcomp, 1, normscore)) #  quantile normalization
+> 
+> cox_surv_ct = matrix(NA, nrow = ncol(CTcomp), ncol = 7)
+> rownames(cox_surv_ct) = colnames(CTcomp)
+> 
+> 
+> for(i in colnames(CTcomp)){
++   fit1 = coxph(Surv(surv_time, death) ~ CTcomp[,i]  + gender + 
++                 age_at_diagnosis, data=clinic_dat)
++   print(i)
++   cox_surv_ct[i,] = c(summary(fit1)$n,summary(fit1)$nevent,
++                       summary(fit1)$coefficient[1,])
++   print(summary(fit1))
++ }
+[1] "B cells naive"
+Call:
+coxph(formula = Surv(surv_time, death) ~ CTcomp[, i] + gender + 
+    age_at_diagnosis, data = clinic_dat)
+
+  n= 447, number of events= 101 
+   (3 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)  
+CTcomp[, i]      -5.991e-02  9.419e-01  4.652e-02 -1.288   0.1979  
+gendermale        5.798e-02  1.060e+00  2.028e-01  0.286   0.7750  
+age_at_diagnosis  5.828e-05  1.000e+00  2.307e-05  2.526   0.0115 *
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+CTcomp[, i]         0.9419     1.0617    0.8598     1.032
+gendermale          1.0597     0.9437    0.7121     1.577
+age_at_diagnosis    1.0001     0.9999    1.0000     1.000
+
+Concordance= 0.572  (se = 0.033 )
+Rsquare= 0.02   (max possible= 0.91 )
+Likelihood ratio test= 8.83  on 3 df,   p=0.03
+Wald test            = 8.41  on 3 df,   p=0.04
+Score (logrank) test = 8.49  on 3 df,   p=0.04
+
+[1] "B cells memory"
+Call:
+coxph(formula = Surv(surv_time, death) ~ CTcomp[, i] + gender + 
+    age_at_diagnosis, data = clinic_dat)
+
+  n= 447, number of events= 101 
+   (3 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)   
+CTcomp[, i]      -1.853e-02  9.816e-01  6.324e-02 -0.293  0.76953   
+gendermale        3.596e-02  1.037e+00  2.020e-01  0.178  0.85866   
+age_at_diagnosis  5.905e-05  1.000e+00  2.290e-05  2.579  0.00992 **
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+CTcomp[, i]         0.9816     1.0187    0.8672     1.111
+gendermale          1.0366     0.9647    0.6978     1.540
+age_at_diagnosis    1.0001     0.9999    1.0000     1.000
+
+Concordance= 0.571  (se = 0.033 )
+Rsquare= 0.016   (max possible= 0.91 )
+Likelihood ratio test= 7.3  on 3 df,   p=0.06
+Wald test            = 6.94  on 3 df,   p=0.07
+Score (logrank) test = 7.02  on 3 df,   p=0.07
+
+[1] "Plasma cells"
+Call:
+coxph(formula = Surv(surv_time, death) ~ CTcomp[, i] + gender + 
+    age_at_diagnosis, data = clinic_dat)
+
+  n= 447, number of events= 101 
+   (3 observations deleted due to missingness)
+
+                      coef exp(coef)  se(coef)     z Pr(>|z|)   
+CTcomp[, i]      2.882e-02 1.029e+00 3.631e-02 0.794  0.42735   
+gendermale       3.680e-02 1.037e+00 2.019e-01 0.182  0.85536   
+age_at_diagnosis 5.884e-05 1.000e+00 2.277e-05 2.584  0.00978 **
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+CTcomp[, i]          1.029     0.9716    0.9585     1.105
+gendermale           1.037     0.9639    0.6985     1.541
+age_at_diagnosis     1.000     0.9999    1.0000     1.000
+
+Concordance= 0.578  (se = 0.033 )
+Rsquare= 0.017   (max possible= 0.91 )
+Likelihood ratio test= 7.85  on 3 df,   p=0.05
+Wald test            = 7.56  on 3 df,   p=0.06
+Score (logrank) test = 7.63  on 3 df,   p=0.05
+
+[1] "T cells CD8"
+Call:
+coxph(formula = Surv(surv_time, death) ~ CTcomp[, i] + gender + 
+    age_at_diagnosis, data = clinic_dat)
+
+  n= 447, number of events= 101 
+   (3 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)  
+CTcomp[, i]      -1.753e-02  9.826e-01  3.757e-02 -0.467    0.641  
+gendermale        4.017e-02  1.041e+00  2.020e-01  0.199    0.842  
+age_at_diagnosis  5.905e-05  1.000e+00  2.294e-05  2.575    0.010 *
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+CTcomp[, i]         0.9826     1.0177    0.9129     1.058
+gendermale          1.0410     0.9606    0.7007     1.547
+age_at_diagnosis    1.0001     0.9999    1.0000     1.000
+
+Concordance= 0.573  (se = 0.033 )
+Rsquare= 0.016   (max possible= 0.91 )
+Likelihood ratio test= 7.43  on 3 df,   p=0.06
+Wald test            = 7.06  on 3 df,   p=0.07
+Score (logrank) test = 7.14  on 3 df,   p=0.07
+
+[1] "T cells CD4 naive"
+Call:
+coxph(formula = Surv(surv_time, death) ~ CTcomp[, i] + gender + 
+    age_at_diagnosis, data = clinic_dat)
+
+  n= 447, number of events= 101 
+   (3 observations deleted due to missingness)
+
+                      coef exp(coef)  se(coef)     z Pr(>|z|)   
+CTcomp[, i]      2.476e-02 1.025e+00 4.983e-02 0.497   0.6194   
+gendermale       3.378e-02 1.034e+00 2.021e-01 0.167   0.8672   
+age_at_diagnosis 5.967e-05 1.000e+00 2.291e-05 2.605   0.0092 **
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+CTcomp[, i]          1.025     0.9755    0.9297     1.130
+gendermale           1.034     0.9668    0.6961     1.537
+age_at_diagnosis     1.000     0.9999    1.0000     1.000
+
+Concordance= 0.58  (se = 0.033 )
+Rsquare= 0.017   (max possible= 0.91 )
+Likelihood ratio test= 7.45  on 3 df,   p=0.06
+Wald test            = 7.12  on 3 df,   p=0.07
+Score (logrank) test = 7.19  on 3 df,   p=0.07
+
+[1] "T cells CD4 memory resting"
+Call:
+coxph(formula = Surv(surv_time, death) ~ CTcomp[, i] + gender + 
+    age_at_diagnosis, data = clinic_dat)
+
+  n= 447, number of events= 101 
+   (3 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)   
+CTcomp[, i]      -3.855e-02  9.622e-01  3.151e-02 -1.223  0.22120   
+gendermale        2.249e-02  1.023e+00  2.025e-01  0.111  0.91157   
+age_at_diagnosis  6.013e-05  1.000e+00  2.284e-05  2.633  0.00847 **
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+CTcomp[, i]         0.9622     1.0393    0.9046     1.023
+gendermale          1.0227     0.9778    0.6877     1.521
+age_at_diagnosis    1.0001     0.9999    1.0000     1.000
+
+Concordance= 0.579  (se = 0.033 )
+Rsquare= 0.019   (max possible= 0.91 )
+Likelihood ratio test= 8.67  on 3 df,   p=0.03
+Wald test            = 8.39  on 3 df,   p=0.04
+Score (logrank) test = 8.46  on 3 df,   p=0.04
+
+[1] "T cells CD4 memory activated"
+Call:
+coxph(formula = Surv(surv_time, death) ~ CTcomp[, i] + gender + 
+    age_at_diagnosis, data = clinic_dat)
+
+  n= 447, number of events= 101 
+   (3 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)   
+CTcomp[, i]      -1.521e-02  9.849e-01  2.649e-02 -0.574  0.56570   
+gendermale        4.362e-02  1.045e+00  2.021e-01  0.216  0.82908   
+age_at_diagnosis  5.931e-05  1.000e+00  2.298e-05  2.581  0.00986 **
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+CTcomp[, i]         0.9849     1.0153    0.9351     1.037
+gendermale          1.0446     0.9573    0.7030     1.552
+age_at_diagnosis    1.0001     0.9999    1.0000     1.000
+
+Concordance= 0.576  (se = 0.033 )
+Rsquare= 0.017   (max possible= 0.91 )
+Likelihood ratio test= 7.55  on 3 df,   p=0.06
+Wald test            = 7.14  on 3 df,   p=0.07
+Score (logrank) test = 7.22  on 3 df,   p=0.07
+
+[1] "T cells follicular helper"
+Call:
+coxph(formula = Surv(surv_time, death) ~ CTcomp[, i] + gender + 
+    age_at_diagnosis, data = clinic_dat)
+
+  n= 447, number of events= 101 
+   (3 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)   
+CTcomp[, i]      -7.448e-03  9.926e-01  3.510e-02 -0.212  0.83196   
+gendermale        3.596e-02  1.037e+00  2.021e-01  0.178  0.85880   
+age_at_diagnosis  5.972e-05  1.000e+00  2.316e-05  2.578  0.00993 **
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+CTcomp[, i]         0.9926     1.0075    0.9266     1.063
+gendermale          1.0366     0.9647    0.6975     1.541
+age_at_diagnosis    1.0001     0.9999    1.0000     1.000
+
+Concordance= 0.573  (se = 0.033 )
+Rsquare= 0.016   (max possible= 0.91 )
+Likelihood ratio test= 7.26  on 3 df,   p=0.06
+Wald test            = 6.9  on 3 df,   p=0.08
+Score (logrank) test = 6.98  on 3 df,   p=0.07
+
+[1] "T cells regulatory (Tregs)"
+Call:
+coxph(formula = Surv(surv_time, death) ~ CTcomp[, i] + gender + 
+    age_at_diagnosis, data = clinic_dat)
+
+  n= 447, number of events= 101 
+   (3 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)   
+CTcomp[, i]      -3.154e-02  9.690e-01  3.628e-02 -0.869  0.38472   
+gendermale        3.307e-02  1.034e+00  2.020e-01  0.164  0.86999   
+age_at_diagnosis  5.934e-05  1.000e+00  2.296e-05  2.585  0.00974 **
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+CTcomp[, i]          0.969     1.0320    0.9024     1.040
+gendermale           1.034     0.9675    0.6956     1.536
+age_at_diagnosis     1.000     0.9999    1.0000     1.000
+
+Concordance= 0.565  (se = 0.033 )
+Rsquare= 0.018   (max possible= 0.91 )
+Likelihood ratio test= 7.96  on 3 df,   p=0.05
+Wald test            = 7.59  on 3 df,   p=0.06
+Score (logrank) test = 7.67  on 3 df,   p=0.05
+
+[1] "T cells gamma delta"
+Call:
+coxph(formula = Surv(surv_time, death) ~ CTcomp[, i] + gender + 
+    age_at_diagnosis, data = clinic_dat)
+
+  n= 447, number of events= 101 
+   (3 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)   
+CTcomp[, i]      -6.329e-03  9.937e-01  7.023e-02 -0.090    0.928   
+gendermale        3.843e-02  1.039e+00  2.019e-01  0.190    0.849   
+age_at_diagnosis  5.906e-05  1.000e+00  2.293e-05  2.576    0.010 **
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+CTcomp[, i]         0.9937     1.0063    0.8659     1.140
+gendermale          1.0392     0.9623    0.6995     1.544
+age_at_diagnosis    1.0001     0.9999    1.0000     1.000
+
+Concordance= 0.573  (se = 0.033 )
+Rsquare= 0.016   (max possible= 0.91 )
+Likelihood ratio test= 7.22  on 3 df,   p=0.07
+Wald test            = 6.86  on 3 df,   p=0.08
+Score (logrank) test = 6.94  on 3 df,   p=0.07
+
+[1] "NK cells resting"
+Call:
+coxph(formula = Surv(surv_time, death) ~ CTcomp[, i] + gender + 
+    age_at_diagnosis, data = clinic_dat)
+
+  n= 447, number of events= 101 
+   (3 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)  
+CTcomp[, i]      -2.749e-02  9.729e-01  3.750e-02 -0.733   0.4636  
+gendermale        4.803e-02  1.049e+00  2.022e-01  0.238   0.8122  
+age_at_diagnosis  5.843e-05  1.000e+00  2.292e-05  2.550   0.0108 *
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+CTcomp[, i]         0.9729     1.0279    0.9039     1.047
+gendermale          1.0492     0.9531    0.7060     1.559
+age_at_diagnosis    1.0001     0.9999    1.0000     1.000
+
+Concordance= 0.568  (se = 0.033 )
+Rsquare= 0.017   (max possible= 0.91 )
+Likelihood ratio test= 7.74  on 3 df,   p=0.05
+Wald test            = 7.37  on 3 df,   p=0.06
+Score (logrank) test = 7.45  on 3 df,   p=0.06
+
+[1] "NK cells activated"
+Call:
+coxph(formula = Surv(surv_time, death) ~ CTcomp[, i] + gender + 
+    age_at_diagnosis, data = clinic_dat)
+
+  n= 447, number of events= 101 
+   (3 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)   
+CTcomp[, i]      -8.949e-03  9.911e-01  3.762e-02 -0.238  0.81198   
+gendermale        3.795e-02  1.039e+00  2.019e-01  0.188  0.85092   
+age_at_diagnosis  5.958e-05  1.000e+00  2.306e-05  2.584  0.00977 **
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+CTcomp[, i]         0.9911     1.0090    0.9206     1.067
+gendermale          1.0387     0.9628    0.6992     1.543
+age_at_diagnosis    1.0001     0.9999    1.0000     1.000
+
+Concordance= 0.574  (se = 0.033 )
+Rsquare= 0.016   (max possible= 0.91 )
+Likelihood ratio test= 7.27  on 3 df,   p=0.06
+Wald test            = 6.91  on 3 df,   p=0.07
+Score (logrank) test = 6.98  on 3 df,   p=0.07
+
+[1] "Monocytes"
+Call:
+coxph(formula = Surv(surv_time, death) ~ CTcomp[, i] + gender + 
+    age_at_diagnosis, data = clinic_dat)
+
+  n= 447, number of events= 101 
+   (3 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)  
+CTcomp[, i]      -7.777e-03  9.923e-01  3.257e-02 -0.239    0.811  
+gendermale        3.857e-02  1.039e+00  2.019e-01  0.191    0.849  
+age_at_diagnosis  5.899e-05  1.000e+00  2.290e-05  2.576    0.010 *
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+CTcomp[, i]         0.9923     1.0078    0.9309     1.058
+gendermale          1.0393     0.9622    0.6997     1.544
+age_at_diagnosis    1.0001     0.9999    1.0000     1.000
+
+Concordance= 0.57  (se = 0.033 )
+Rsquare= 0.016   (max possible= 0.91 )
+Likelihood ratio test= 7.27  on 3 df,   p=0.06
+Wald test            = 6.91  on 3 df,   p=0.07
+Score (logrank) test = 6.99  on 3 df,   p=0.07
+
+[1] "Macrophages M1"
+Call:
+coxph(formula = Surv(surv_time, death) ~ CTcomp[, i] + gender + 
+    age_at_diagnosis, data = clinic_dat)
+
+  n= 447, number of events= 101 
+   (3 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)   
+CTcomp[, i]      -1.126e-01  8.935e-01  3.447e-02 -3.266  0.00109 **
+gendermale       -1.735e-02  9.828e-01  2.041e-01 -0.085  0.93229   
+age_at_diagnosis  6.857e-05  1.000e+00  2.312e-05  2.966  0.00301 **
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+CTcomp[, i]         0.8935     1.1192    0.8352     0.956
+gendermale          0.9828     1.0175    0.6587     1.466
+age_at_diagnosis    1.0001     0.9999    1.0000     1.000
+
+Concordance= 0.598  (se = 0.033 )
+Rsquare= 0.038   (max possible= 0.91 )
+Likelihood ratio test= 17.26  on 3 df,   p=6e-04
+Wald test            = 17.46  on 3 df,   p=6e-04
+Score (logrank) test = 17.67  on 3 df,   p=5e-04
+
+[1] "Macrophages M2"
+Call:
+coxph(formula = Surv(surv_time, death) ~ CTcomp[, i] + gender + 
+    age_at_diagnosis, data = clinic_dat)
+
+  n= 447, number of events= 101 
+   (3 observations deleted due to missingness)
+
+                      coef exp(coef)  se(coef)     z Pr(>|z|)   
+CTcomp[, i]      2.020e-02 1.020e+00 3.414e-02 0.592  0.55408   
+gendermale       3.765e-02 1.038e+00 2.019e-01 0.187  0.85205   
+age_at_diagnosis 5.912e-05 1.000e+00 2.295e-05 2.576  0.00998 **
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+CTcomp[, i]          1.020     0.9800    0.9544     1.091
+gendermale           1.038     0.9630    0.6991     1.542
+age_at_diagnosis     1.000     0.9999    1.0000     1.000
+
+Concordance= 0.571  (se = 0.033 )
+Rsquare= 0.017   (max possible= 0.91 )
+Likelihood ratio test= 7.57  on 3 df,   p=0.06
+Wald test            = 7.19  on 3 df,   p=0.07
+Score (logrank) test = 7.26  on 3 df,   p=0.06
+
+[1] "Dendritic cells resting"
+Call:
+coxph(formula = Surv(surv_time, death) ~ CTcomp[, i] + gender + 
+    age_at_diagnosis, data = clinic_dat)
+
+  n= 447, number of events= 101 
+   (3 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)   
+CTcomp[, i]      -2.703e-02  9.733e-01  3.380e-02 -0.800  0.42389   
+gendermale        2.813e-02  1.029e+00  2.024e-01  0.139  0.88947   
+age_at_diagnosis  5.947e-05  1.000e+00  2.295e-05  2.592  0.00955 **
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+CTcomp[, i]         0.9733     1.0274    0.9109     1.040
+gendermale          1.0285     0.9723    0.6917     1.529
+age_at_diagnosis    1.0001     0.9999    1.0000     1.000
+
+Concordance= 0.571  (se = 0.033 )
+Rsquare= 0.017   (max possible= 0.91 )
+Likelihood ratio test= 7.85  on 3 df,   p=0.05
+Wald test            = 7.49  on 3 df,   p=0.06
+Score (logrank) test = 7.58  on 3 df,   p=0.06
+
+[1] "Dendritic cells activated"
+Call:
+coxph(formula = Surv(surv_time, death) ~ CTcomp[, i] + gender + 
+    age_at_diagnosis, data = clinic_dat)
+
+  n= 447, number of events= 101 
+   (3 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)   
+CTcomp[, i]      -2.661e-02  9.737e-01  4.499e-02 -0.592  0.55415   
+gendermale        2.989e-02  1.030e+00  2.022e-01  0.148  0.88249   
+age_at_diagnosis  5.980e-05  1.000e+00  2.297e-05  2.603  0.00924 **
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+CTcomp[, i]         0.9737     1.0270    0.8916     1.063
+gendermale          1.0303     0.9705    0.6932     1.532
+age_at_diagnosis    1.0001     0.9999    1.0000     1.000
+
+Concordance= 0.559  (se = 0.033 )
+Rsquare= 0.017   (max possible= 0.91 )
+Likelihood ratio test= 7.58  on 3 df,   p=0.06
+Wald test            = 7.19  on 3 df,   p=0.07
+Score (logrank) test = 7.27  on 3 df,   p=0.06
+
+[1] "Mast cells resting"
+Call:
+coxph(formula = Surv(surv_time, death) ~ CTcomp[, i] + gender + 
+    age_at_diagnosis, data = clinic_dat)
+
+  n= 447, number of events= 101 
+   (3 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)   
+CTcomp[, i]      -1.147e-02  9.886e-01  3.725e-02 -0.308  0.75812   
+gendermale        3.729e-02  1.038e+00  2.019e-01  0.185  0.85344   
+age_at_diagnosis  5.908e-05  1.000e+00  2.294e-05  2.576  0.00999 **
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+CTcomp[, i]         0.9886     1.0115    0.9190     1.063
+gendermale          1.0380     0.9634    0.6988     1.542
+age_at_diagnosis    1.0001     0.9999    1.0000     1.000
+
+Concordance= 0.575  (se = 0.033 )
+Rsquare= 0.016   (max possible= 0.91 )
+Likelihood ratio test= 7.31  on 3 df,   p=0.06
+Wald test            = 6.94  on 3 df,   p=0.07
+Score (logrank) test = 7.02  on 3 df,   p=0.07
+
+[1] "Mast cells activated"
+Call:
+coxph(formula = Surv(surv_time, death) ~ CTcomp[, i] + gender + 
+    age_at_diagnosis, data = clinic_dat)
+
+  n= 447, number of events= 101 
+   (3 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)   
+CTcomp[, i]      -1.006e-02  9.900e-01  3.214e-02 -0.313  0.75427   
+gendermale        3.897e-02  1.040e+00  2.018e-01  0.193  0.84690   
+age_at_diagnosis  5.912e-05  1.000e+00  2.292e-05  2.580  0.00989 **
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+CTcomp[, i]           0.99     1.0101    0.9295     1.054
+gendermale            1.04     0.9618    0.7000     1.544
+age_at_diagnosis      1.00     0.9999    1.0000     1.000
+
+Concordance= 0.567  (se = 0.033 )
+Rsquare= 0.016   (max possible= 0.91 )
+Likelihood ratio test= 7.31  on 3 df,   p=0.06
+Wald test            = 6.95  on 3 df,   p=0.07
+Score (logrank) test = 7.02  on 3 df,   p=0.07
+
+[1] "Eosinophils"
+Call:
+coxph(formula = Surv(surv_time, death) ~ CTcomp[, i] + gender + 
+    age_at_diagnosis, data = clinic_dat)
+
+  n= 447, number of events= 101 
+   (3 observations deleted due to missingness)
+
+                      coef exp(coef)  se(coef)     z Pr(>|z|)  
+CTcomp[, i]      8.462e-03 1.008e+00 3.479e-02 0.243   0.8078  
+gendermale       4.059e-02 1.041e+00 2.022e-01 0.201   0.8409  
+age_at_diagnosis 5.849e-05 1.000e+00 2.302e-05 2.541   0.0111 *
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+CTcomp[, i]          1.008     0.9916    0.9420     1.080
+gendermale           1.041     0.9602    0.7007     1.548
+age_at_diagnosis     1.000     0.9999    1.0000     1.000
+
+Concordance= 0.578  (se = 0.033 )
+Rsquare= 0.016   (max possible= 0.91 )
+Likelihood ratio test= 7.27  on 3 df,   p=0.06
+Wald test            = 6.91  on 3 df,   p=0.07
+Score (logrank) test = 6.99  on 3 df,   p=0.07
+
+[1] "Neutrophils"
+Call:
+coxph(formula = Surv(surv_time, death) ~ CTcomp[, i] + gender + 
+    age_at_diagnosis, data = clinic_dat)
+
+  n= 447, number of events= 101 
+   (3 observations deleted due to missingness)
+
+                      coef exp(coef)  se(coef)     z Pr(>|z|)  
+CTcomp[, i]      1.867e-02 1.019e+00 4.098e-02 0.456   0.6486  
+gendermale       4.189e-02 1.043e+00 2.021e-01 0.207   0.8357  
+age_at_diagnosis 5.837e-05 1.000e+00 2.293e-05 2.545   0.0109 *
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+CTcomp[, i]          1.019     0.9815    0.9402     1.104
+gendermale           1.043     0.9590    0.7018     1.549
+age_at_diagnosis     1.000     0.9999    1.0000     1.000
+
+Concordance= 0.581  (se = 0.033 )
+Rsquare= 0.016   (max possible= 0.91 )
+Likelihood ratio test= 7.42  on 3 df,   p=0.06
+Wald test            = 7.08  on 3 df,   p=0.07
+Score (logrank) test = 7.16  on 3 df,   p=0.07
+
+> 
+> 
+> colnames(cox_surv_ct)  = c('n', 'nevent', colnames(summary(fit1)$coefficient))
+> 
+> cox_surv_ct
+                               n nevent         coef exp(coef)   se(coef)
+B cells naive                447    101 -0.059907709 0.9418515 0.04652462
+B cells memory               447    101 -0.018529402 0.9816412 0.06324207
+Plasma cells                 447    101  0.028817057 1.0292363 0.03630554
+T cells CD8                  447    101 -0.017532226 0.9826206 0.03756666
+T cells CD4 naive            447    101  0.024755864 1.0250648 0.04983461
+T cells CD4 memory resting   447    101 -0.038550183 0.9621834 0.03151214
+T cells CD4 memory activated 447    101 -0.015214563 0.9849006 0.02648768
+T cells follicular helper    447    101 -0.007448312 0.9925794 0.03510199
+T cells regulatory (Tregs)   447    101 -0.031538096 0.9689540 0.03628296
+T cells gamma delta          447    101 -0.006329034 0.9936910 0.07022640
+NK cells resting             447    101 -0.027489058 0.9728853 0.03750296
+NK cells activated           447    101 -0.008948956 0.9910910 0.03761991
+Monocytes                    447    101 -0.007777274 0.9922529 0.03257324
+Macrophages M1               447    101 -0.112570674 0.8935342 0.03447040
+Macrophages M2               447    101  0.020198820 1.0204042 0.03413960
+Dendritic cells resting      447    101 -0.027031352 0.9733307 0.03380255
+Dendritic cells activated    447    101 -0.026613056 0.9737380 0.04498861
+Mast cells resting           447    101 -0.011472148 0.9885934 0.03725260
+Mast cells activated         447    101 -0.010061424 0.9899890 0.03214327
+Eosinophils                  447    101  0.008461903 1.0084978 0.03479109
+Neutrophils                  447    101  0.018674174 1.0188496 0.04097632
+                                       z   Pr(>|z|)
+B cells naive                -1.28765599 0.19786574
+B cells memory               -0.29299173 0.76952847
+Plasma cells                  0.79373710 0.42734849
+T cells CD8                  -0.46669638 0.64071712
+T cells CD4 naive             0.49676049 0.61935796
+T cells CD4 memory resting   -1.22334396 0.22119981
+T cells CD4 memory activated -0.57440139 0.56569621
+T cells follicular helper    -0.21219059 0.83195835
+T cells regulatory (Tregs)   -0.86922613 0.38472346
+T cells gamma delta          -0.09012328 0.92818925
+NK cells resting             -0.73298368 0.46356838
+NK cells activated           -0.23787823 0.81197554
+Monocytes                    -0.23876267 0.81128962
+Macrophages M1               -3.26572034 0.00109186
+Macrophages M2                0.59165362 0.55408256
+Dendritic cells resting      -0.79968371 0.42389407
+Dendritic cells activated    -0.59155098 0.55415131
+Mast cells resting           -0.30795562 0.75811610
+Mast cells activated         -0.31301805 0.75426695
+Eosinophils                   0.24322038 0.80783468
+Neutrophils                   0.45573091 0.64858349
+> signif(cox_surv_ct, 3)
+                               n nevent     coef exp(coef) se(coef)       z
+B cells naive                447    101 -0.05990     0.942   0.0465 -1.2900
+B cells memory               447    101 -0.01850     0.982   0.0632 -0.2930
+Plasma cells                 447    101  0.02880     1.030   0.0363  0.7940
+T cells CD8                  447    101 -0.01750     0.983   0.0376 -0.4670
+T cells CD4 naive            447    101  0.02480     1.030   0.0498  0.4970
+T cells CD4 memory resting   447    101 -0.03860     0.962   0.0315 -1.2200
+T cells CD4 memory activated 447    101 -0.01520     0.985   0.0265 -0.5740
+T cells follicular helper    447    101 -0.00745     0.993   0.0351 -0.2120
+T cells regulatory (Tregs)   447    101 -0.03150     0.969   0.0363 -0.8690
+T cells gamma delta          447    101 -0.00633     0.994   0.0702 -0.0901
+NK cells resting             447    101 -0.02750     0.973   0.0375 -0.7330
+NK cells activated           447    101 -0.00895     0.991   0.0376 -0.2380
+Monocytes                    447    101 -0.00778     0.992   0.0326 -0.2390
+Macrophages M1               447    101 -0.11300     0.894   0.0345 -3.2700
+Macrophages M2               447    101  0.02020     1.020   0.0341  0.5920
+Dendritic cells resting      447    101 -0.02700     0.973   0.0338 -0.8000
+Dendritic cells activated    447    101 -0.02660     0.974   0.0450 -0.5920
+Mast cells resting           447    101 -0.01150     0.989   0.0373 -0.3080
+Mast cells activated         447    101 -0.01010     0.990   0.0321 -0.3130
+Eosinophils                  447    101  0.00846     1.010   0.0348  0.2430
+Neutrophils                  447    101  0.01870     1.020   0.0410  0.4560
+                             Pr(>|z|)
+B cells naive                 0.19800
+B cells memory                0.77000
+Plasma cells                  0.42700
+T cells CD8                   0.64100
+T cells CD4 naive             0.61900
+T cells CD4 memory resting    0.22100
+T cells CD4 memory activated  0.56600
+T cells follicular helper     0.83200
+T cells regulatory (Tregs)    0.38500
+T cells gamma delta           0.92800
+NK cells resting              0.46400
+NK cells activated            0.81200
+Monocytes                     0.81100
+Macrophages M1                0.00109
+Macrophages M2                0.55400
+Dendritic cells resting       0.42400
+Dendritic cells activated     0.55400
+Mast cells resting            0.75800
+Mast cells activated          0.75400
+Eosinophils                   0.80800
+Neutrophils                   0.64900
+> write.table(signif(cox_surv_ct, 3), file = "../data/cox_surv.txt")
+> 
+> 
+> 
+> ## --------------------------------------------------------
+> ## Cox regression: age, gender, tumor stage
+> ## --------------------------------------------------------
+> 
+> cox_surv_ct2 = matrix(NA, nrow = ncol(CTcomp), ncol = 7)
+> rownames(cox_surv_ct2) = colnames(CTcomp)
+> 
+> 
+> for(i in colnames(CTcomp)){
++   fit1 = coxph(Surv(surv_time, death) ~ CTcomp[,i] + gender + stage +
++                  age_at_diagnosis, data=clinic_dat)
++   print(i)
++   cox_surv_ct2[i,] = c(summary(fit1)$n,summary(fit1)$nevent,
++                       summary(fit1)$coefficient[1,])
++   print(summary(fit1))
++ }
+[1] "B cells naive"
+Call:
+coxph(formula = Surv(surv_time, death) ~ CTcomp[, i] + gender + 
+    stage + age_at_diagnosis, data = clinic_dat)
+
+  n= 436, number of events= 96 
+   (14 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)    
+CTcomp[, i]      -7.436e-02  9.283e-01  5.305e-02 -1.402  0.16102    
+gendermale       -4.320e-02  9.577e-01  2.094e-01 -0.206  0.83652    
+stageii           5.862e-01  1.797e+00  4.877e-01  1.202  0.22936    
+stageiii          1.430e+00  4.178e+00  4.831e-01  2.960  0.00308 ** 
+stageiv           2.385e+00  1.086e+01  4.867e-01  4.900 9.57e-07 ***
+age_at_diagnosis  9.643e-05  1.000e+00  2.435e-05  3.960 7.48e-05 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+CTcomp[, i]         0.9283    1.07720    0.8367     1.030
+gendermale          0.9577    1.04415    0.6354     1.444
+stageii             1.7971    0.55645    0.6910     4.674
+stageiii            4.1783    0.23933    1.6211    10.770
+stageiv            10.8595    0.09209    4.1833    28.190
+age_at_diagnosis    1.0001    0.99990    1.0000     1.000
+
+Concordance= 0.728  (se = 0.033 )
+Rsquare= 0.13   (max possible= 0.903 )
+Likelihood ratio test= 60.58  on 6 df,   p=3e-11
+Wald test            = 60.51  on 6 df,   p=4e-11
+Score (logrank) test = 69.47  on 6 df,   p=5e-13
+
+[1] "B cells memory"
+Call:
+coxph(formula = Surv(surv_time, death) ~ CTcomp[, i] + gender + 
+    stage + age_at_diagnosis, data = clinic_dat)
+
+  n= 436, number of events= 96 
+   (14 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)    
+CTcomp[, i]       5.594e-02  1.058e+00  6.878e-02  0.813   0.4160    
+gendermale       -5.728e-02  9.443e-01  2.082e-01 -0.275   0.7833    
+stageii           6.115e-01  1.843e+00  4.872e-01  1.255   0.2094    
+stageiii          1.476e+00  4.377e+00  4.843e-01  3.049   0.0023 ** 
+stageiv           2.420e+00  1.125e+01  4.879e-01  4.960 7.05e-07 ***
+age_at_diagnosis  9.724e-05  1.000e+00  2.426e-05  4.009 6.10e-05 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+CTcomp[, i]         1.0575    0.94559    0.9242     1.210
+gendermale          0.9443    1.05896    0.6279     1.420
+stageii             1.8432    0.54254    0.7093     4.789
+stageiii            4.3774    0.22845    1.6944    11.309
+stageiv            11.2457    0.08892    4.3220    29.261
+age_at_diagnosis    1.0001    0.99990    1.0000     1.000
+
+Concordance= 0.731  (se = 0.033 )
+Rsquare= 0.127   (max possible= 0.903 )
+Likelihood ratio test= 59.3  on 6 df,   p=6e-11
+Wald test            = 59.49  on 6 df,   p=6e-11
+Score (logrank) test = 68.74  on 6 df,   p=7e-13
+
+[1] "Plasma cells"
+Call:
+coxph(formula = Surv(surv_time, death) ~ CTcomp[, i] + gender + 
+    stage + age_at_diagnosis, data = clinic_dat)
+
+  n= 436, number of events= 96 
+   (14 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)    
+CTcomp[, i]       5.979e-02  1.062e+00  3.905e-02  1.531  0.12577    
+gendermale       -3.925e-02  9.615e-01  2.081e-01 -0.189  0.85041    
+stageii           6.461e-01  1.908e+00  4.871e-01  1.326  0.18472    
+stageiii          1.502e+00  4.490e+00  4.846e-01  3.100  0.00194 ** 
+stageiv           2.452e+00  1.161e+01  4.887e-01  5.017 5.25e-07 ***
+age_at_diagnosis  9.972e-05  1.000e+00  2.423e-05  4.116 3.85e-05 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+CTcomp[, i]         1.0616    0.94197    0.9834     1.146
+gendermale          0.9615    1.04003    0.6394     1.446
+stageii             1.9081    0.52409    0.7344     4.957
+stageiii            4.4902    0.22271    1.7370    11.607
+stageiv            11.6095    0.08614    4.4547    30.256
+age_at_diagnosis    1.0001    0.99990    1.0001     1.000
+
+Concordance= 0.73  (se = 0.033 )
+Rsquare= 0.131   (max possible= 0.903 )
+Likelihood ratio test= 61.09  on 6 df,   p=3e-11
+Wald test            = 60.42  on 6 df,   p=4e-11
+Score (logrank) test = 69.91  on 6 df,   p=4e-13
+
+[1] "T cells CD8"
+Call:
+coxph(formula = Surv(surv_time, death) ~ CTcomp[, i] + gender + 
+    stage + age_at_diagnosis, data = clinic_dat)
+
+  n= 436, number of events= 96 
+   (14 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)    
+CTcomp[, i]      -6.978e-04  9.993e-01  4.164e-02 -0.017  0.98663    
+gendermale       -5.958e-02  9.422e-01  2.086e-01 -0.286  0.77512    
+stageii           6.202e-01  1.859e+00  4.874e-01  1.272  0.20323    
+stageiii          1.451e+00  4.266e+00  4.840e-01  2.997  0.00273 ** 
+stageiv           2.395e+00  1.097e+01  4.881e-01  4.907 9.26e-07 ***
+age_at_diagnosis  9.746e-05  1.000e+00  2.428e-05  4.014 5.97e-05 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+CTcomp[, i]         0.9993    1.00070    0.9210     1.084
+gendermale          0.9422    1.06139    0.6260     1.418
+stageii             1.8593    0.53784    0.7152     4.833
+stageiii            4.2657    0.23443    1.6519    11.015
+stageiv            10.9692    0.09116    4.2140    28.553
+age_at_diagnosis    1.0001    0.99990    1.0000     1.000
+
+Concordance= 0.728  (se = 0.033 )
+Rsquare= 0.126   (max possible= 0.903 )
+Likelihood ratio test= 58.68  on 6 df,   p=8e-11
+Wald test            = 58.87  on 6 df,   p=8e-11
+Score (logrank) test = 68.08  on 6 df,   p=1e-12
+
+[1] "T cells CD4 naive"
+Call:
+coxph(formula = Surv(surv_time, death) ~ CTcomp[, i] + gender + 
+    stage + age_at_diagnosis, data = clinic_dat)
+
+  n= 436, number of events= 96 
+   (14 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)    
+CTcomp[, i]       6.824e-02  1.071e+00  5.202e-02  1.312  0.18953    
+gendermale       -7.539e-02  9.274e-01  2.085e-01 -0.362  0.71764    
+stageii           6.399e-01  1.896e+00  4.871e-01  1.314  0.18896    
+stageiii          1.482e+00  4.403e+00  4.836e-01  3.065  0.00218 ** 
+stageiv           2.440e+00  1.147e+01  4.882e-01  4.998 5.81e-07 ***
+age_at_diagnosis  9.853e-05  1.000e+00  2.409e-05  4.090 4.31e-05 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+CTcomp[, i]         1.0706    0.93403    0.9669     1.186
+gendermale          0.9274    1.07831    0.6163     1.395
+stageii             1.8963    0.52733    0.7299     4.927
+stageiii            4.4029    0.22712    1.7065    11.360
+stageiv            11.4711    0.08718    4.4060    29.865
+age_at_diagnosis    1.0001    0.99990    1.0001     1.000
+
+Concordance= 0.732  (se = 0.033 )
+Rsquare= 0.129   (max possible= 0.903 )
+Likelihood ratio test= 60.24  on 6 df,   p=4e-11
+Wald test            = 60.52  on 6 df,   p=4e-11
+Score (logrank) test = 69.81  on 6 df,   p=4e-13
+
+[1] "T cells CD4 memory resting"
+Call:
+coxph(formula = Surv(surv_time, death) ~ CTcomp[, i] + gender + 
+    stage + age_at_diagnosis, data = clinic_dat)
+
+  n= 436, number of events= 96 
+   (14 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)    
+CTcomp[, i]      -2.159e-02  9.786e-01  3.383e-02 -0.638  0.52322    
+gendermale       -7.064e-02  9.318e-01  2.092e-01 -0.338  0.73568    
+stageii           6.409e-01  1.898e+00  4.880e-01  1.313  0.18906    
+stageiii          1.441e+00  4.226e+00  4.832e-01  2.983  0.00286 ** 
+stageiv           2.400e+00  1.102e+01  4.867e-01  4.931 8.19e-07 ***
+age_at_diagnosis  9.635e-05  1.000e+00  2.419e-05  3.982 6.82e-05 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+CTcomp[, i]         0.9786    1.02183    0.9159     1.046
+gendermale          0.9318    1.07319    0.6183     1.404
+stageii             1.8982    0.52682    0.7294     4.940
+stageiii            4.2261    0.23663    1.6392    10.896
+stageiv            11.0184    0.09076    4.2450    28.600
+age_at_diagnosis    1.0001    0.99990    1.0000     1.000
+
+Concordance= 0.73  (se = 0.033 )
+Rsquare= 0.127   (max possible= 0.903 )
+Likelihood ratio test= 59.08  on 6 df,   p=7e-11
+Wald test            = 59.83  on 6 df,   p=5e-11
+Score (logrank) test = 68.8  on 6 df,   p=7e-13
+
+[1] "T cells CD4 memory activated"
+Call:
+coxph(formula = Surv(surv_time, death) ~ CTcomp[, i] + gender + 
+    stage + age_at_diagnosis, data = clinic_dat)
+
+  n= 436, number of events= 96 
+   (14 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)    
+CTcomp[, i]       2.222e-02  1.022e+00  2.811e-02  0.790  0.42935    
+gendermale       -7.773e-02  9.252e-01  2.097e-01 -0.371  0.71094    
+stageii           6.228e-01  1.864e+00  4.870e-01  1.279  0.20093    
+stageiii          1.471e+00  4.355e+00  4.838e-01  3.041  0.00236 ** 
+stageiv           2.437e+00  1.144e+01  4.897e-01  4.976 6.49e-07 ***
+age_at_diagnosis  9.706e-05  1.000e+00  2.412e-05  4.024 5.73e-05 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+CTcomp[, i]         1.0225    0.97803    0.9677     1.080
+gendermale          0.9252    1.08083    0.6133     1.396
+stageii             1.8641    0.53644    0.7177     4.842
+stageiii            4.3546    0.22964    1.6872    11.239
+stageiv            11.4377    0.08743    4.3801    29.867
+age_at_diagnosis    1.0001    0.99990    1.0000     1.000
+
+Concordance= 0.728  (se = 0.033 )
+Rsquare= 0.127   (max possible= 0.903 )
+Likelihood ratio test= 59.31  on 6 df,   p=6e-11
+Wald test            = 59.69  on 6 df,   p=5e-11
+Score (logrank) test = 68.84  on 6 df,   p=7e-13
+
+[1] "T cells follicular helper"
+Call:
+coxph(formula = Surv(surv_time, death) ~ CTcomp[, i] + gender + 
+    stage + age_at_diagnosis, data = clinic_dat)
+
+  n= 436, number of events= 96 
+   (14 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)    
+CTcomp[, i]       2.517e-02  1.025e+00  3.856e-02  0.653 0.513914    
+gendermale       -5.156e-02  9.497e-01  2.087e-01 -0.247 0.804847    
+stageii           6.224e-01  1.863e+00  4.869e-01  1.278 0.201140    
+stageiii          1.454e+00  4.282e+00  4.831e-01  3.011 0.002606 ** 
+stageiv           2.421e+00  1.125e+01  4.885e-01  4.955 7.23e-07 ***
+age_at_diagnosis  9.475e-05  1.000e+00  2.460e-05  3.851 0.000118 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+CTcomp[, i]         1.0255    0.97514    0.9508     1.106
+gendermale          0.9497    1.05291    0.6309     1.430
+stageii             1.8634    0.53666    0.7176     4.839
+stageiii            4.2821    0.23353    1.6614    11.037
+stageiv            11.2521    0.08887    4.3193    29.313
+age_at_diagnosis    1.0001    0.99991    1.0000     1.000
+
+Concordance= 0.731  (se = 0.033 )
+Rsquare= 0.127   (max possible= 0.903 )
+Likelihood ratio test= 59.1  on 6 df,   p=7e-11
+Wald test            = 59.41  on 6 df,   p=6e-11
+Score (logrank) test = 68.52  on 6 df,   p=8e-13
+
+[1] "T cells regulatory (Tregs)"
+Call:
+coxph(formula = Surv(surv_time, death) ~ CTcomp[, i] + gender + 
+    stage + age_at_diagnosis, data = clinic_dat)
+
+  n= 436, number of events= 96 
+   (14 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)    
+CTcomp[, i]      -3.207e-02  9.684e-01  3.964e-02 -0.809  0.41848    
+gendermale       -7.614e-02  9.267e-01  2.097e-01 -0.363  0.71653    
+stageii           6.136e-01  1.847e+00  4.869e-01  1.260  0.20762    
+stageiii          1.447e+00  4.252e+00  4.831e-01  2.996  0.00274 ** 
+stageiv           2.386e+00  1.087e+01  4.872e-01  4.898 9.69e-07 ***
+age_at_diagnosis  9.751e-05  1.000e+00  2.433e-05  4.008 6.13e-05 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+CTcomp[, i]         0.9684     1.0326    0.8961     1.047
+gendermale          0.9267     1.0791    0.6144     1.398
+stageii             1.8470     0.5414    0.7112     4.796
+stageiii            4.2523     0.2352    1.6496    10.962
+stageiv            10.8701     0.0920    4.1837    28.243
+age_at_diagnosis    1.0001     0.9999    1.0000     1.000
+
+Concordance= 0.726  (se = 0.033 )
+Rsquare= 0.127   (max possible= 0.903 )
+Likelihood ratio test= 59.33  on 6 df,   p=6e-11
+Wald test            = 59.5  on 6 df,   p=6e-11
+Score (logrank) test = 68.81  on 6 df,   p=7e-13
+
+[1] "T cells gamma delta"
+Call:
+coxph(formula = Surv(surv_time, death) ~ CTcomp[, i] + gender + 
+    stage + age_at_diagnosis, data = clinic_dat)
+
+  n= 436, number of events= 96 
+   (14 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)    
+CTcomp[, i]       6.699e-02  1.069e+00  7.615e-02  0.880  0.37907    
+gendermale       -6.585e-02  9.363e-01  2.082e-01 -0.316  0.75183    
+stageii           6.230e-01  1.865e+00  4.870e-01  1.279  0.20076    
+stageiii          1.479e+00  4.388e+00  4.845e-01  3.053  0.00227 ** 
+stageiv           2.425e+00  1.131e+01  4.885e-01  4.965 6.86e-07 ***
+age_at_diagnosis  9.672e-05  1.000e+00  2.423e-05  3.992 6.54e-05 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+CTcomp[, i]         1.0693    0.93521    0.9210     1.241
+gendermale          0.9363    1.06807    0.6225     1.408
+stageii             1.8645    0.53632    0.7179     4.843
+stageiii            4.3884    0.22788    1.6979    11.342
+stageiv            11.3061    0.08845    4.3405    29.450
+age_at_diagnosis    1.0001    0.99990    1.0000     1.000
+
+Concordance= 0.732  (se = 0.033 )
+Rsquare= 0.127   (max possible= 0.903 )
+Likelihood ratio test= 59.4  on 6 df,   p=6e-11
+Wald test            = 59.54  on 6 df,   p=6e-11
+Score (logrank) test = 68.85  on 6 df,   p=7e-13
+
+[1] "NK cells resting"
+Call:
+coxph(formula = Surv(surv_time, death) ~ CTcomp[, i] + gender + 
+    stage + age_at_diagnosis, data = clinic_dat)
+
+  n= 436, number of events= 96 
+   (14 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)    
+CTcomp[, i]      -5.124e-02  9.501e-01  4.486e-02 -1.142   0.2534    
+gendermale       -3.267e-02  9.679e-01  2.096e-01 -0.156   0.8761    
+stageii           6.004e-01  1.823e+00  4.876e-01  1.231   0.2181    
+stageiii          1.439e+00  4.218e+00  4.833e-01  2.978   0.0029 ** 
+stageiv           2.429e+00  1.135e+01  4.882e-01  4.975 6.52e-07 ***
+age_at_diagnosis  9.738e-05  1.000e+00  2.422e-05  4.021 5.79e-05 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+CTcomp[, i]         0.9501    1.05257    0.8701     1.037
+gendermale          0.9679    1.03320    0.6418     1.459
+stageii             1.8229    0.54857    0.7010     4.740
+stageiii            4.2179    0.23708    1.6359    10.875
+stageiv            11.3471    0.08813    4.3583    29.543
+age_at_diagnosis    1.0001    0.99990    1.0000     1.000
+
+Concordance= 0.731  (se = 0.033 )
+Rsquare= 0.128   (max possible= 0.903 )
+Likelihood ratio test= 59.94  on 6 df,   p=5e-11
+Wald test            = 59.51  on 6 df,   p=6e-11
+Score (logrank) test = 68.77  on 6 df,   p=7e-13
+
+[1] "NK cells activated"
+Call:
+coxph(formula = Surv(surv_time, death) ~ CTcomp[, i] + gender + 
+    stage + age_at_diagnosis, data = clinic_dat)
+
+  n= 436, number of events= 96 
+   (14 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)    
+CTcomp[, i]       2.738e-02  1.028e+00  4.010e-02  0.683 0.494707    
+gendermale       -5.485e-02  9.466e-01  2.081e-01 -0.264 0.792049    
+stageii           6.220e-01  1.863e+00  4.870e-01  1.277 0.201506    
+stageiii          1.460e+00  4.307e+00  4.832e-01  3.022 0.002510 ** 
+stageiv           2.424e+00  1.130e+01  4.887e-01  4.961    7e-07 ***
+age_at_diagnosis  9.493e-05  1.000e+00  2.443e-05  3.885 0.000102 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+CTcomp[, i]         1.0278    0.97299    0.9501     1.112
+gendermale          0.9466    1.05639    0.6296     1.423
+stageii             1.8627    0.53686    0.7172     4.838
+stageiii            4.3067    0.23220    1.6707    11.102
+stageiv            11.2954    0.08853    4.3346    29.434
+age_at_diagnosis    1.0001    0.99991    1.0000     1.000
+
+Concordance= 0.732  (se = 0.033 )
+Rsquare= 0.127   (max possible= 0.903 )
+Likelihood ratio test= 59.14  on 6 df,   p=7e-11
+Wald test            = 59.66  on 6 df,   p=5e-11
+Score (logrank) test = 68.79  on 6 df,   p=7e-13
+
+[1] "Monocytes"
+Call:
+coxph(formula = Surv(surv_time, death) ~ CTcomp[, i] + gender + 
+    stage + age_at_diagnosis, data = clinic_dat)
+
+  n= 436, number of events= 96 
+   (14 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)    
+CTcomp[, i]       6.922e-04  1.001e+00  3.510e-02  0.020  0.98426    
+gendermale       -5.998e-02  9.418e-01  2.085e-01 -0.288  0.77360    
+stageii           6.204e-01  1.860e+00  4.869e-01  1.274  0.20263    
+stageiii          1.451e+00  4.269e+00  4.833e-01  3.003  0.00267 ** 
+stageiv           2.396e+00  1.098e+01  4.869e-01  4.920 8.64e-07 ***
+age_at_diagnosis  9.744e-05  1.000e+00  2.429e-05  4.011 6.04e-05 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+CTcomp[, i]         1.0007    0.99931    0.9342     1.072
+gendermale          0.9418    1.06181    0.6259     1.417
+stageii             1.8597    0.53772    0.7161     4.830
+stageiii            4.2688    0.23426    1.6555    11.007
+stageiv            10.9755    0.09111    4.2264    28.502
+age_at_diagnosis    1.0001    0.99990    1.0000     1.000
+
+Concordance= 0.728  (se = 0.033 )
+Rsquare= 0.126   (max possible= 0.903 )
+Likelihood ratio test= 58.68  on 6 df,   p=8e-11
+Wald test            = 58.88  on 6 df,   p=8e-11
+Score (logrank) test = 68.11  on 6 df,   p=1e-12
+
+[1] "Macrophages M1"
+Call:
+coxph(formula = Surv(surv_time, death) ~ CTcomp[, i] + gender + 
+    stage + age_at_diagnosis, data = clinic_dat)
+
+  n= 436, number of events= 96 
+   (14 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)    
+CTcomp[, i]      -7.182e-02  9.307e-01  3.644e-02 -1.971  0.04875 *  
+gendermale       -8.919e-02  9.147e-01  2.093e-01 -0.426  0.66996    
+stageii           6.199e-01  1.859e+00  4.867e-01  1.274  0.20281    
+stageiii          1.413e+00  4.109e+00  4.838e-01  2.921  0.00349 ** 
+stageiv           2.292e+00  9.891e+00  4.912e-01  4.665 3.08e-06 ***
+age_at_diagnosis  1.055e-04  1.000e+00  2.476e-05  4.260 2.04e-05 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+CTcomp[, i]         0.9307     1.0745    0.8665    0.9996
+gendermale          0.9147     1.0933    0.6069    1.3785
+stageii             1.8587     0.5380    0.7160    4.8251
+stageiii            4.1088     0.2434    1.5917   10.6062
+stageiv             9.8906     0.1011    3.7768   25.9011
+age_at_diagnosis    1.0001     0.9999    1.0001    1.0002
+
+Concordance= 0.73  (se = 0.033 )
+Rsquare= 0.133   (max possible= 0.903 )
+Likelihood ratio test= 62.43  on 6 df,   p=1e-11
+Wald test            = 61.6  on 6 df,   p=2e-11
+Score (logrank) test = 71.12  on 6 df,   p=2e-13
+
+[1] "Macrophages M2"
+Call:
+coxph(formula = Surv(surv_time, death) ~ CTcomp[, i] + gender + 
+    stage + age_at_diagnosis, data = clinic_dat)
+
+  n= 436, number of events= 96 
+   (14 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)    
+CTcomp[, i]       1.915e-02  1.019e+00  3.694e-02  0.518  0.60420    
+gendermale       -6.232e-02  9.396e-01  2.084e-01 -0.299  0.76492    
+stageii           6.068e-01  1.834e+00  4.877e-01  1.244  0.21341    
+stageiii          1.443e+00  4.231e+00  4.833e-01  2.985  0.00284 ** 
+stageiv           2.391e+00  1.092e+01  4.868e-01  4.911 9.08e-07 ***
+age_at_diagnosis  9.758e-05  1.000e+00  2.431e-05  4.014 5.97e-05 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+CTcomp[, i]         1.0193    0.98104    0.9481     1.096
+gendermale          0.9396    1.06430    0.6245     1.414
+stageii             1.8345    0.54512    0.7054     4.771
+stageiii            4.2315    0.23632    1.6410    10.911
+stageiv            10.9209    0.09157    4.2059    28.357
+age_at_diagnosis    1.0001    0.99990    1.0000     1.000
+
+Concordance= 0.731  (se = 0.033 )
+Rsquare= 0.126   (max possible= 0.903 )
+Likelihood ratio test= 58.96  on 6 df,   p=7e-11
+Wald test            = 59.14  on 6 df,   p=7e-11
+Score (logrank) test = 68.36  on 6 df,   p=9e-13
+
+[1] "Dendritic cells resting"
+Call:
+coxph(formula = Surv(surv_time, death) ~ CTcomp[, i] + gender + 
+    stage + age_at_diagnosis, data = clinic_dat)
+
+  n= 436, number of events= 96 
+   (14 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)    
+CTcomp[, i]       5.487e-03  1.006e+00  3.607e-02  0.152  0.87909    
+gendermale       -5.792e-02  9.437e-01  2.086e-01 -0.278  0.78123    
+stageii           6.246e-01  1.867e+00  4.876e-01  1.281  0.20020    
+stageiii          1.458e+00  4.296e+00  4.851e-01  3.005  0.00266 ** 
+stageiv           2.403e+00  1.105e+01  4.891e-01  4.912 9.01e-07 ***
+age_at_diagnosis  9.729e-05  1.000e+00  2.429e-05  4.006 6.17e-05 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+CTcomp[, i]         1.0055    0.99453    0.9369     1.079
+gendermale          0.9437    1.05963    0.6271     1.420
+stageii             1.8674    0.53549    0.7182     4.856
+stageiii            4.2957    0.23279    1.6601    11.116
+stageiv            11.0532    0.09047    4.2377    28.830
+age_at_diagnosis    1.0001    0.99990    1.0000     1.000
+
+Concordance= 0.729  (se = 0.033 )
+Rsquare= 0.126   (max possible= 0.903 )
+Likelihood ratio test= 58.71  on 6 df,   p=8e-11
+Wald test            = 58.93  on 6 df,   p=7e-11
+Score (logrank) test = 68.13  on 6 df,   p=1e-12
+
+[1] "Dendritic cells activated"
+Call:
+coxph(formula = Surv(surv_time, death) ~ CTcomp[, i] + gender + 
+    stage + age_at_diagnosis, data = clinic_dat)
+
+  n= 436, number of events= 96 
+   (14 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)    
+CTcomp[, i]       2.256e-02  1.023e+00  4.685e-02  0.482   0.6301    
+gendermale       -5.430e-02  9.471e-01  2.086e-01 -0.260   0.7946    
+stageii           6.323e-01  1.882e+00  4.874e-01  1.297   0.1945    
+stageiii          1.477e+00  4.378e+00  4.865e-01  3.036   0.0024 ** 
+stageiv           2.421e+00  1.126e+01  4.904e-01  4.938 7.89e-07 ***
+age_at_diagnosis  9.723e-05  1.000e+00  2.427e-05  4.007 6.15e-05 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+CTcomp[, i]         1.0228     0.9777    0.9331     1.121
+gendermale          0.9471     1.0558    0.6293     1.426
+stageii             1.8819     0.5314    0.7240     4.892
+stageiii            4.3784     0.2284    1.6875    11.360
+stageiv            11.2610     0.0888    4.3071    29.442
+age_at_diagnosis    1.0001     0.9999    1.0000     1.000
+
+Concordance= 0.73  (se = 0.033 )
+Rsquare= 0.126   (max possible= 0.903 )
+Likelihood ratio test= 58.91  on 6 df,   p=7e-11
+Wald test            = 58.97  on 6 df,   p=7e-11
+Score (logrank) test = 68.22  on 6 df,   p=9e-13
+
+[1] "Mast cells resting"
+Call:
+coxph(formula = Surv(surv_time, death) ~ CTcomp[, i] + gender + 
+    stage + age_at_diagnosis, data = clinic_dat)
+
+  n= 436, number of events= 96 
+   (14 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)    
+CTcomp[, i]       1.566e-02  1.016e+00  3.996e-02  0.392  0.69508    
+gendermale       -6.254e-02  9.394e-01  2.084e-01 -0.300  0.76407    
+stageii           6.171e-01  1.854e+00  4.870e-01  1.267  0.20512    
+stageiii          1.459e+00  4.301e+00  4.835e-01  3.017  0.00255 ** 
+stageiv           2.411e+00  1.114e+01  4.886e-01  4.935 8.03e-07 ***
+age_at_diagnosis  9.780e-05  1.000e+00  2.426e-05  4.031 5.55e-05 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+CTcomp[, i]         1.0158    0.98446    0.9393     1.099
+gendermale          0.9394    1.06454    0.6244     1.413
+stageii             1.8536    0.53949    0.7136     4.815
+stageiii            4.3013    0.23249    1.6673    11.096
+stageiv            11.1433    0.08974    4.2771    29.032
+age_at_diagnosis    1.0001    0.99990    1.0001     1.000
+
+Concordance= 0.729  (se = 0.033 )
+Rsquare= 0.126   (max possible= 0.903 )
+Likelihood ratio test= 58.84  on 6 df,   p=8e-11
+Wald test            = 58.94  on 6 df,   p=7e-11
+Score (logrank) test = 68.19  on 6 df,   p=1e-12
+
+[1] "Mast cells activated"
+Call:
+coxph(formula = Surv(surv_time, death) ~ CTcomp[, i] + gender + 
+    stage + age_at_diagnosis, data = clinic_dat)
+
+  n= 436, number of events= 96 
+   (14 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)    
+CTcomp[, i]      -1.665e-02  9.835e-01  3.738e-02 -0.445  0.65597    
+gendermale       -6.128e-02  9.406e-01  2.083e-01 -0.294  0.76858    
+stageii           6.254e-01  1.869e+00  4.870e-01  1.284  0.19911    
+stageiii          1.454e+00  4.280e+00  4.832e-01  3.009  0.00262 ** 
+stageiv           2.412e+00  1.115e+01  4.884e-01  4.938 7.89e-07 ***
+age_at_diagnosis  9.812e-05  1.000e+00  2.431e-05  4.036 5.43e-05 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+CTcomp[, i]         0.9835    1.01679    0.9140     1.058
+gendermale          0.9406    1.06320    0.6253     1.415
+stageii             1.8690    0.53505    0.7195     4.855
+stageiii            4.2797    0.23366    1.6601    11.033
+stageiv            11.1548    0.08965    4.2827    29.054
+age_at_diagnosis    1.0001    0.99990    1.0001     1.000
+
+Concordance= 0.728  (se = 0.033 )
+Rsquare= 0.126   (max possible= 0.903 )
+Likelihood ratio test= 58.88  on 6 df,   p=8e-11
+Wald test            = 58.9  on 6 df,   p=8e-11
+Score (logrank) test = 68.13  on 6 df,   p=1e-12
+
+[1] "Eosinophils"
+Call:
+coxph(formula = Surv(surv_time, death) ~ CTcomp[, i] + gender + 
+    stage + age_at_diagnosis, data = clinic_dat)
+
+  n= 436, number of events= 96 
+   (14 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)    
+CTcomp[, i]       3.181e-03  1.003e+00  3.607e-02  0.088  0.92972    
+gendermale       -5.853e-02  9.431e-01  2.087e-01 -0.280  0.77913    
+stageii           6.202e-01  1.859e+00  4.869e-01  1.274  0.20272    
+stageiii          1.451e+00  4.268e+00  4.831e-01  3.004  0.00267 ** 
+stageiv           2.395e+00  1.096e+01  4.871e-01  4.917 8.80e-07 ***
+age_at_diagnosis  9.720e-05  1.000e+00  2.445e-05  3.975 7.04e-05 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+CTcomp[, i]         1.0032     0.9968    0.9347     1.077
+gendermale          0.9431     1.0603    0.6265     1.420
+stageii             1.8594     0.5378    0.7160     4.829
+stageiii            4.2684     0.2343    1.6558    11.003
+stageiv            10.9644     0.0912    4.2209    28.481
+age_at_diagnosis    1.0001     0.9999    1.0000     1.000
+
+Concordance= 0.729  (se = 0.033 )
+Rsquare= 0.126   (max possible= 0.903 )
+Likelihood ratio test= 58.69  on 6 df,   p=8e-11
+Wald test            = 58.91  on 6 df,   p=8e-11
+Score (logrank) test = 68.15  on 6 df,   p=1e-12
+
+[1] "Neutrophils"
+Call:
+coxph(formula = Surv(surv_time, death) ~ CTcomp[, i] + gender + 
+    stage + age_at_diagnosis, data = clinic_dat)
+
+  n= 436, number of events= 96 
+   (14 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)    
+CTcomp[, i]       2.080e-02  1.021e+00  4.405e-02  0.472  0.63674    
+gendermale       -6.122e-02  9.406e-01  2.084e-01 -0.294  0.76897    
+stageii           6.296e-01  1.877e+00  4.872e-01  1.292  0.19633    
+stageiii          1.465e+00  4.328e+00  4.841e-01  3.026  0.00248 ** 
+stageiv           2.392e+00  1.093e+01  4.870e-01  4.911 9.05e-07 ***
+age_at_diagnosis  9.602e-05  1.000e+00  2.440e-05  3.935 8.32e-05 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+CTcomp[, i]         1.0210    0.97941    0.9366     1.113
+gendermale          0.9406    1.06314    0.6252     1.415
+stageii             1.8768    0.53283    0.7222     4.877
+stageiii            4.3282    0.23104    1.6758    11.179
+stageiv            10.9312    0.09148    4.2089    28.390
+age_at_diagnosis    1.0001    0.99990    1.0000     1.000
+
+Concordance= 0.732  (se = 0.033 )
+Rsquare= 0.126   (max possible= 0.903 )
+Likelihood ratio test= 58.9  on 6 df,   p=8e-11
+Wald test            = 59.48  on 6 df,   p=6e-11
+Score (logrank) test = 68.65  on 6 df,   p=8e-13
+
+> 
+> 
+> colnames(cox_surv_ct2)  = c('n', 'nevent', 
++                             colnames(summary(fit1)$coefficient))
+> 
+> cox_surv_ct2
+                               n nevent          coef exp(coef)   se(coef)
+B cells naive                436     96 -0.0743610572 0.9283365 0.05305218
+B cells memory               436     96  0.0559447430 1.0575392 0.06878368
+Plasma cells                 436     96  0.0597868280 1.0616102 0.03905117
+T cells CD8                  436     96 -0.0006978497 0.9993024 0.04163895
+T cells CD4 naive            436     96  0.0682426623 1.0706251 0.05201547
+T cells CD4 memory resting   436     96 -0.0215936905 0.9786378 0.03382541
+T cells CD4 memory activated 436     96  0.0222171716 1.0224658 0.02811247
+T cells follicular helper    436     96  0.0251715124 1.0254910 0.03856190
+T cells regulatory (Tregs)   436     96 -0.0320685191 0.9684402 0.03963643
+T cells gamma delta          436     96  0.0669859466 1.0692805 0.07615476
+NK cells resting             436     96 -0.0512363969 0.9500541 0.04485785
+NK cells activated           436     96  0.0273818717 1.0277602 0.04009986
+Monocytes                    436     96  0.0006922349 1.0006925 0.03509828
+Macrophages M1               436     96 -0.0718194930 0.9306989 0.03644238
+Macrophages M2               436     96  0.0191466333 1.0193311 0.03693610
+Dendritic cells resting      436     96  0.0054872122 1.0055023 0.03607144
+Dendritic cells activated    436     96  0.0225580165 1.0228144 0.04684541
+Mast cells resting           436     96  0.0156640012 1.0157873 0.03996271
+Mast cells activated         436     96 -0.0166500116 0.9834878 0.03737549
+Eosinophils                  436     96  0.0031812718 1.0031863 0.03607005
+Neutrophils                  436     96  0.0208045481 1.0210225 0.04405250
+                                       z   Pr(>|z|)
+B cells naive                -1.40165893 0.16101712
+B cells memory                0.81334326 0.41602128
+Plasma cells                  1.53098677 0.12577266
+T cells CD8                  -0.01675954 0.98662845
+T cells CD4 naive             1.31196868 0.18953070
+T cells CD4 memory resting   -0.63838659 0.52322206
+T cells CD4 memory activated  0.79029592 0.42935497
+T cells follicular helper     0.65275608 0.51391354
+T cells regulatory (Tregs)   -0.80906675 0.41847675
+T cells gamma delta           0.87960284 0.37907450
+NK cells resting             -1.14219458 0.25337315
+NK cells activated            0.68284206 0.49470665
+Monocytes                     0.01972276 0.98426453
+Macrophages M1               -1.97076854 0.04875036
+Macrophages M2                0.51837186 0.60419885
+Dendritic cells resting       0.15212068 0.87909175
+Dendritic cells activated     0.48154162 0.63013161
+Mast cells resting            0.39196542 0.69508376
+Mast cells activated         -0.44547939 0.65597335
+Eosinophils                   0.08819706 0.92972006
+Neutrophils                   0.47226713 0.63673613
+> signif(cox_surv_ct2, 3)
+                               n nevent      coef exp(coef) se(coef)       z
+B cells naive                436     96 -0.074400     0.928   0.0531 -1.4000
+B cells memory               436     96  0.055900     1.060   0.0688  0.8130
+Plasma cells                 436     96  0.059800     1.060   0.0391  1.5300
+T cells CD8                  436     96 -0.000698     0.999   0.0416 -0.0168
+T cells CD4 naive            436     96  0.068200     1.070   0.0520  1.3100
+T cells CD4 memory resting   436     96 -0.021600     0.979   0.0338 -0.6380
+T cells CD4 memory activated 436     96  0.022200     1.020   0.0281  0.7900
+T cells follicular helper    436     96  0.025200     1.030   0.0386  0.6530
+T cells regulatory (Tregs)   436     96 -0.032100     0.968   0.0396 -0.8090
+T cells gamma delta          436     96  0.067000     1.070   0.0762  0.8800
+NK cells resting             436     96 -0.051200     0.950   0.0449 -1.1400
+NK cells activated           436     96  0.027400     1.030   0.0401  0.6830
+Monocytes                    436     96  0.000692     1.000   0.0351  0.0197
+Macrophages M1               436     96 -0.071800     0.931   0.0364 -1.9700
+Macrophages M2               436     96  0.019100     1.020   0.0369  0.5180
+Dendritic cells resting      436     96  0.005490     1.010   0.0361  0.1520
+Dendritic cells activated    436     96  0.022600     1.020   0.0468  0.4820
+Mast cells resting           436     96  0.015700     1.020   0.0400  0.3920
+Mast cells activated         436     96 -0.016700     0.983   0.0374 -0.4450
+Eosinophils                  436     96  0.003180     1.000   0.0361  0.0882
+Neutrophils                  436     96  0.020800     1.020   0.0441  0.4720
+                             Pr(>|z|)
+B cells naive                  0.1610
+B cells memory                 0.4160
+Plasma cells                   0.1260
+T cells CD8                    0.9870
+T cells CD4 naive              0.1900
+T cells CD4 memory resting     0.5230
+T cells CD4 memory activated   0.4290
+T cells follicular helper      0.5140
+T cells regulatory (Tregs)     0.4180
+T cells gamma delta            0.3790
+NK cells resting               0.2530
+NK cells activated             0.4950
+Monocytes                      0.9840
+Macrophages M1                 0.0488
+Macrophages M2                 0.6040
+Dendritic cells resting        0.8790
+Dendritic cells activated      0.6300
+Mast cells resting             0.6950
+Mast cells activated           0.6560
+Eosinophils                    0.9300
+Neutrophils                    0.6370
+> write.table(signif(cox_surv_ct2, 3), file = "../data/cox_surv_with_stage.txt")
+> 
+> ## --------------------------------------------------------
+> ## Cox regression: dichotomize
+> ## --------------------------------------------------------
+> cox_surv_ct = matrix(NA, nrow = ncol(CTcomp), ncol = 8)
+> rownames(cox_surv_ct) = colnames(CTcomp)
+> 
+> 
+> for(i in colnames(CTcomp)){
++   ctc = cut(CTcomp[,i], breaks = c(-0.01, median(CTcomp[,i]),1),
++             labels =c("Low", "High") ) 
++   fit1 = coxph(Surv(surv_time, death) ~ ctc + gender + 
++                  age_at_diagnosis, data=clinic_dat)
++   print(i)
++   cox_surv_ct[i,] = c(summary(fit1)$n,
++                       summary(fit1)$nevent,
++                       sum(ctc == "Low"),
++                       summary(fit1)$coefficient[1,])
++   print(summary(fit1))
++ }
+[1] "B cells naive"
+Call:
+coxph(formula = Surv(surv_time, death) ~ ctc + gender + age_at_diagnosis, 
+    data = clinic_dat)
+
+  n= 167, number of events= 34 
+   (283 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)  
+ctcHigh           4.679e-01  1.597e+00  3.926e-01  1.192   0.2333  
+gendermale       -2.066e-01  8.133e-01  3.490e-01 -0.592   0.5538  
+age_at_diagnosis  7.689e-05  1.000e+00  4.000e-05  1.922   0.0546 .
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+ctcHigh             1.5967     0.6263    0.7397     3.447
+gendermale          0.8133     1.2295    0.4104     1.612
+age_at_diagnosis    1.0001     0.9999    1.0000     1.000
+
+Concordance= 0.61  (se = 0.056 )
+Rsquare= 0.029   (max possible= 0.83 )
+Likelihood ratio test= 5  on 3 df,   p=0.2
+Wald test            = 4.94  on 3 df,   p=0.2
+Score (logrank) test = 5.03  on 3 df,   p=0.2
+
+[1] "B cells memory"
+Call:
+coxph(formula = Surv(surv_time, death) ~ ctc + gender + age_at_diagnosis, 
+    data = clinic_dat)
+
+  n= 222, number of events= 55 
+   (228 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)
+ctcHigh          -1.017e+00  3.618e-01  1.010e+00 -1.006    0.314
+gendermale        3.674e-03  1.004e+00  2.731e-01  0.013    0.989
+age_at_diagnosis  4.061e-05  1.000e+00  2.947e-05  1.378    0.168
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+ctcHigh             0.3618     2.7642   0.04993     2.621
+gendermale          1.0037     0.9963   0.58770     1.714
+age_at_diagnosis    1.0000     1.0000   0.99998     1.000
+
+Concordance= 0.556  (se = 0.043 )
+Rsquare= 0.016   (max possible= 0.908 )
+Likelihood ratio test= 3.51  on 3 df,   p=0.3
+Wald test            = 3  on 3 df,   p=0.4
+Score (logrank) test = 3.11  on 3 df,   p=0.4
+
+[1] "Plasma cells"
+Call:
+coxph(formula = Surv(surv_time, death) ~ ctc + gender + age_at_diagnosis, 
+    data = clinic_dat)
+
+  n= 188, number of events= 46 
+   (262 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)  
+ctcHigh          -6.138e-01  5.413e-01  4.131e-01 -1.486   0.1373  
+gendermale       -1.919e-01  8.254e-01  3.034e-01 -0.632   0.5272  
+age_at_diagnosis  6.613e-05  1.000e+00  3.364e-05  1.966   0.0493 *
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+ctcHigh             0.5413     1.8474    0.2409     1.216
+gendermale          0.8254     1.2115    0.4554     1.496
+age_at_diagnosis    1.0001     0.9999    1.0000     1.000
+
+Concordance= 0.591  (se = 0.048 )
+Rsquare= 0.035   (max possible= 0.892 )
+Likelihood ratio test= 6.7  on 3 df,   p=0.08
+Wald test            = 6.24  on 3 df,   p=0.1
+Score (logrank) test = 6.4  on 3 df,   p=0.09
+
+[1] "T cells CD8"
+Call:
+coxph(formula = Surv(surv_time, death) ~ ctc + gender + age_at_diagnosis, 
+    data = clinic_dat)
+
+  n= 160, number of events= 40 
+   (290 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)  
+ctcHigh           4.985e-01  1.646e+00  3.355e-01  1.486   0.1374  
+gendermale       -9.795e-02  9.067e-01  3.234e-01 -0.303   0.7620  
+age_at_diagnosis  8.454e-05  1.000e+00  3.695e-05  2.288   0.0221 *
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+ctcHigh             1.6462     0.6075    0.8529     3.178
+gendermale          0.9067     1.1029    0.4811     1.709
+age_at_diagnosis    1.0001     0.9999    1.0000     1.000
+
+Concordance= 0.616  (se = 0.05 )
+Rsquare= 0.044   (max possible= 0.894 )
+Likelihood ratio test= 7.24  on 3 df,   p=0.06
+Wald test            = 6.84  on 3 df,   p=0.08
+Score (logrank) test = 6.98  on 3 df,   p=0.07
+
+[1] "T cells CD4 naive"
+Call:
+coxph(formula = Surv(surv_time, death) ~ ctc + gender + age_at_diagnosis, 
+    data = clinic_dat)
+
+  n= 222, number of events= 50 
+   (228 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)  
+ctcHigh          -1.213e-01  8.858e-01  7.232e-01 -0.168   0.8668  
+gendermale        1.943e-01  1.214e+00  2.905e-01  0.669   0.5036  
+age_at_diagnosis  6.637e-05  1.000e+00  3.268e-05  2.031   0.0423 *
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+ctcHigh             0.8858     1.1289    0.2147     3.655
+gendermale          1.2145     0.8234    0.6872     2.146
+age_at_diagnosis    1.0001     0.9999    1.0000     1.000
+
+Concordance= 0.566  (se = 0.044 )
+Rsquare= 0.023   (max possible= 0.889 )
+Likelihood ratio test= 5.27  on 3 df,   p=0.2
+Wald test            = 4.92  on 3 df,   p=0.2
+Score (logrank) test = 5  on 3 df,   p=0.2
+
+[1] "T cells CD4 memory resting"
+Call:
+coxph(formula = Surv(surv_time, death) ~ ctc + gender + age_at_diagnosis, 
+    data = clinic_dat)
+
+  n= 166, number of events= 34 
+   (284 observations deleted due to missingness)
+
+                      coef exp(coef)  se(coef)     z Pr(>|z|)
+ctcHigh          5.358e-01 1.709e+00 4.081e-01 1.313    0.189
+gendermale       1.029e-01 1.108e+00 3.543e-01 0.290    0.772
+age_at_diagnosis 2.161e-05 1.000e+00 4.000e-05 0.540    0.589
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+ctcHigh              1.709     0.5852    0.7679     3.803
+gendermale           1.108     0.9022    0.5535     2.220
+age_at_diagnosis     1.000     1.0000    0.9999     1.000
+
+Concordance= 0.551  (se = 0.056 )
+Rsquare= 0.016   (max possible= 0.829 )
+Likelihood ratio test= 2.66  on 3 df,   p=0.4
+Wald test            = 2.45  on 3 df,   p=0.5
+Score (logrank) test = 2.51  on 3 df,   p=0.5
+
+[1] "T cells CD4 memory activated"
+Call:
+coxph(formula = Surv(surv_time, death) ~ ctc + gender + age_at_diagnosis, 
+    data = clinic_dat)
+
+  n= 170, number of events= 35 
+   (280 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)  
+ctcHigh          -3.281e-01  7.203e-01  3.568e-01 -0.920   0.3578  
+gendermale       -2.074e-01  8.127e-01  3.403e-01 -0.610   0.5422  
+age_at_diagnosis  7.478e-05  1.000e+00  4.047e-05  1.848   0.0646 .
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+ctcHigh             0.7203     1.3883    0.3580     1.449
+gendermale          0.8127     1.2305    0.4172     1.583
+age_at_diagnosis    1.0001     0.9999    1.0000     1.000
+
+Concordance= 0.584  (se = 0.056 )
+Rsquare= 0.028   (max possible= 0.835 )
+Likelihood ratio test= 4.77  on 3 df,   p=0.2
+Wald test            = 4.62  on 3 df,   p=0.2
+Score (logrank) test = 4.68  on 3 df,   p=0.2
+
+[1] "T cells follicular helper"
+Call:
+coxph(formula = Surv(surv_time, death) ~ ctc + gender + age_at_diagnosis, 
+    data = clinic_dat)
+
+  n= 215, number of events= 54 
+   (235 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)
+ctcHigh          -1.709e+01  3.775e-08  2.816e+03 -0.006    0.995
+gendermale        5.360e-02  1.055e+00  2.747e-01  0.195    0.845
+age_at_diagnosis  1.900e-05  1.000e+00  2.967e-05  0.640    0.522
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+ctcHigh          3.775e-08  2.649e+07    0.0000       Inf
+gendermale       1.055e+00  9.478e-01    0.6158     1.808
+age_at_diagnosis 1.000e+00  1.000e+00    1.0000     1.000
+
+Concordance= 0.54  (se = 0.043 )
+Rsquare= 0.032   (max possible= 0.908 )
+Likelihood ratio test= 6.99  on 3 df,   p=0.07
+Wald test            = 0.04  on 3 df,   p=1
+Score (logrank) test = 3.83  on 3 df,   p=0.3
+
+[1] "T cells regulatory (Tregs)"
+Call:
+coxph(formula = Surv(surv_time, death) ~ ctc + gender + age_at_diagnosis, 
+    data = clinic_dat)
+
+  n= 199, number of events= 45 
+   (251 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)
+ctcHigh          -2.969e-01  7.431e-01  3.315e-01 -0.896    0.370
+gendermale       -9.508e-02  9.093e-01  3.038e-01 -0.313    0.754
+age_at_diagnosis  4.599e-05  1.000e+00  3.169e-05  1.451    0.147
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+ctcHigh             0.7431      1.346    0.3880     1.423
+gendermale          0.9093      1.100    0.5014     1.649
+age_at_diagnosis    1.0000      1.000    1.0000     1.000
+
+Concordance= 0.566  (se = 0.049 )
+Rsquare= 0.014   (max possible= 0.872 )
+Likelihood ratio test= 2.85  on 3 df,   p=0.4
+Wald test            = 2.81  on 3 df,   p=0.4
+Score (logrank) test = 2.83  on 3 df,   p=0.4
+
+[1] "T cells gamma delta"
+Call:
+coxph(formula = Surv(surv_time, death) ~ ctc + gender + age_at_diagnosis, 
+    data = clinic_dat)
+
+  n= 223, number of events= 53 
+   (227 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)
+ctcHigh          -9.795e-01  3.755e-01  1.011e+00 -0.969    0.332
+gendermale        2.214e-02  1.022e+00  2.794e-01  0.079    0.937
+age_at_diagnosis  4.120e-05  1.000e+00  3.033e-05  1.359    0.174
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+ctcHigh             0.3755     2.6631   0.05179     2.722
+gendermale          1.0224     0.9781   0.59126     1.768
+age_at_diagnosis    1.0000     1.0000   0.99998     1.000
+
+Concordance= 0.55  (se = 0.044 )
+Rsquare= 0.015   (max possible= 0.898 )
+Likelihood ratio test= 3.44  on 3 df,   p=0.3
+Wald test            = 2.95  on 3 df,   p=0.4
+Score (logrank) test = 3.05  on 3 df,   p=0.4
+
+[1] "NK cells resting"
+Call:
+coxph(formula = Surv(surv_time, death) ~ ctc + gender + age_at_diagnosis, 
+    data = clinic_dat)
+
+  n= 179, number of events= 38 
+   (271 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)  
+ctcHigh          -5.121e-01  5.993e-01  3.422e-01 -1.496   0.1346  
+gendermale        9.233e-02  1.097e+00  3.295e-01  0.280   0.7793  
+age_at_diagnosis  7.639e-05  1.000e+00  3.581e-05  2.133   0.0329 *
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+ctcHigh             0.5993     1.6687    0.3064     1.172
+gendermale          1.0967     0.9118    0.5749     2.092
+age_at_diagnosis    1.0001     0.9999    1.0000     1.000
+
+Concordance= 0.579  (se = 0.054 )
+Rsquare= 0.038   (max possible= 0.841 )
+Likelihood ratio test= 6.9  on 3 df,   p=0.08
+Wald test            = 6.42  on 3 df,   p=0.09
+Score (logrank) test = 6.55  on 3 df,   p=0.09
+
+[1] "NK cells activated"
+Call:
+coxph(formula = Surv(surv_time, death) ~ ctc + gender + age_at_diagnosis, 
+    data = clinic_dat)
+
+  n= 220, number of events= 55 
+   (230 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)
+ctcHigh          -5.437e-01  5.806e-01  7.213e-01 -0.754    0.451
+gendermale       -5.042e-02  9.508e-01  2.710e-01 -0.186    0.852
+age_at_diagnosis  4.244e-05  1.000e+00  2.917e-05  1.455    0.146
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+ctcHigh             0.5806      1.722    0.1412     2.387
+gendermale          0.9508      1.052    0.5590     1.617
+age_at_diagnosis    1.0000      1.000    1.0000     1.000
+
+Concordance= 0.551  (se = 0.043 )
+Rsquare= 0.013   (max possible= 0.904 )
+Likelihood ratio test= 2.8  on 3 df,   p=0.4
+Wald test            = 2.64  on 3 df,   p=0.5
+Score (logrank) test = 2.67  on 3 df,   p=0.4
+
+[1] "Monocytes"
+Call:
+coxph(formula = Surv(surv_time, death) ~ ctc + gender + age_at_diagnosis, 
+    data = clinic_dat)
+
+  n= 214, number of events= 56 
+   (236 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)  
+ctcHigh          -1.707e+01  3.854e-08  3.070e+03 -0.006   0.9956  
+gendermale       -2.057e-01  8.140e-01  2.701e-01 -0.762   0.4462  
+age_at_diagnosis  5.608e-05  1.000e+00  3.103e-05  1.807   0.0707 .
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+ctcHigh          3.854e-08  2.594e+07    0.0000       Inf
+gendermale       8.140e-01  1.228e+00    0.4795     1.382
+age_at_diagnosis 1.000e+00  9.999e-01    1.0000     1.000
+
+Concordance= 0.592  (se = 0.043 )
+Rsquare= 0.041   (max possible= 0.916 )
+Likelihood ratio test= 9.05  on 3 df,   p=0.03
+Wald test            = 0.58  on 3 df,   p=0.9
+Score (logrank) test = 6.3  on 3 df,   p=0.1
+
+[1] "Macrophages M1"
+Call:
+coxph(formula = Surv(surv_time, death) ~ ctc + gender + age_at_diagnosis, 
+    data = clinic_dat)
+
+  n= 203, number of events= 48 
+   (247 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)  
+ctcHigh          -4.803e-01  6.186e-01  4.120e-01 -1.166   0.2437  
+gendermale       -2.722e-01  7.617e-01  2.920e-01 -0.932   0.3513  
+age_at_diagnosis  6.048e-05  1.000e+00  3.400e-05  1.779   0.0753 .
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+ctcHigh             0.6186     1.6165    0.2759     1.387
+gendermale          0.7617     1.3128    0.4297     1.350
+age_at_diagnosis    1.0001     0.9999    1.0000     1.000
+
+Concordance= 0.568  (se = 0.047 )
+Rsquare= 0.025   (max possible= 0.883 )
+Likelihood ratio test= 5.13  on 3 df,   p=0.2
+Wald test            = 4.92  on 3 df,   p=0.2
+Score (logrank) test = 4.97  on 3 df,   p=0.2
+
+[1] "Macrophages M2"
+Call:
+coxph(formula = Surv(surv_time, death) ~ ctc + gender + age_at_diagnosis, 
+    data = clinic_dat)
+
+  n= 196, number of events= 52 
+   (254 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)
+ctcHigh           1.450e-01  1.156e+00  2.808e-01  0.516    0.606
+gendermale       -3.954e-01  6.734e-01  2.813e-01 -1.405    0.160
+age_at_diagnosis  5.118e-05  1.000e+00  3.237e-05  1.581    0.114
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+ctcHigh             1.1560     0.8651    0.6668     2.004
+gendermale          0.6734     1.4850    0.3880     1.169
+age_at_diagnosis    1.0001     0.9999    1.0000     1.000
+
+Concordance= 0.556  (se = 0.045 )
+Rsquare= 0.021   (max possible= 0.911 )
+Likelihood ratio test= 4.12  on 3 df,   p=0.2
+Wald test            = 4.15  on 3 df,   p=0.2
+Score (logrank) test = 4.16  on 3 df,   p=0.2
+
+[1] "Dendritic cells resting"
+Call:
+coxph(formula = Surv(surv_time, death) ~ ctc + gender + age_at_diagnosis, 
+    data = clinic_dat)
+
+  n= 203, number of events= 50 
+   (247 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)  
+ctcHigh          -1.362e+00  2.560e-01  5.962e-01 -2.285   0.0223 *
+gendermale       -5.258e-02  9.488e-01  2.848e-01 -0.185   0.8535  
+age_at_diagnosis  8.425e-05  1.000e+00  3.321e-05  2.537   0.0112 *
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+ctcHigh             0.2560     3.9059   0.07958    0.8236
+gendermale          0.9488     1.0540   0.54297    1.6579
+age_at_diagnosis    1.0001     0.9999   1.00002    1.0001
+
+Concordance= 0.643  (se = 0.044 )
+Rsquare= 0.074   (max possible= 0.905 )
+Likelihood ratio test= 15.64  on 3 df,   p=0.001
+Wald test            = 12.1  on 3 df,   p=0.007
+Score (logrank) test = 13.17  on 3 df,   p=0.004
+
+[1] "Dendritic cells activated"
+Call:
+coxph(formula = Surv(surv_time, death) ~ ctc + gender + age_at_diagnosis, 
+    data = clinic_dat)
+
+  n= 217, number of events= 48 
+   (233 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)  
+ctcHigh          -1.698e+01  4.235e-08  3.262e+03 -0.005   0.9958  
+gendermale        6.652e-02  1.069e+00  2.898e-01  0.230   0.8185  
+age_at_diagnosis  8.252e-05  1.000e+00  3.374e-05  2.446   0.0144 *
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+ctcHigh          4.235e-08  2.362e+07    0.0000       Inf
+gendermale       1.069e+00  9.356e-01    0.6056     1.886
+age_at_diagnosis 1.000e+00  9.999e-01    1.0000     1.000
+
+Concordance= 0.609  (se = 0.045 )
+Rsquare= 0.051   (max possible= 0.885 )
+Likelihood ratio test= 11.3  on 3 df,   p=0.01
+Wald test            = 0.05  on 3 df,   p=1
+Score (logrank) test = 8.6  on 3 df,   p=0.04
+
+[1] "Mast cells resting"
+Call:
+coxph(formula = Surv(surv_time, death) ~ ctc + gender + age_at_diagnosis, 
+    data = clinic_dat)
+
+  n= 218, number of events= 50 
+   (232 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)  
+ctcHigh          -5.922e-01  5.531e-01  5.959e-01 -0.994   0.3203  
+gendermale        4.041e-03  1.004e+00  2.842e-01  0.014   0.9887  
+age_at_diagnosis  5.772e-05  1.000e+00  3.211e-05  1.798   0.0722 .
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+ctcHigh             0.5531     1.8080    0.1720     1.779
+gendermale          1.0040     0.9960    0.5752     1.753
+age_at_diagnosis    1.0001     0.9999    1.0000     1.000
+
+Concordance= 0.566  (se = 0.045 )
+Rsquare= 0.021   (max possible= 0.885 )
+Likelihood ratio test= 4.69  on 3 df,   p=0.2
+Wald test            = 4.32  on 3 df,   p=0.2
+Score (logrank) test = 4.39  on 3 df,   p=0.2
+
+[1] "Mast cells activated"
+Call:
+coxph(formula = Surv(surv_time, death) ~ ctc + gender + age_at_diagnosis, 
+    data = clinic_dat)
+
+  n= 183, number of events= 43 
+   (267 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)   
+ctcHigh           1.677e-01  1.183e+00  3.070e-01  0.546  0.58490   
+gendermale       -1.220e-01  8.852e-01  3.093e-01 -0.394  0.69334   
+age_at_diagnosis  9.965e-05  1.000e+00  3.759e-05  2.651  0.00802 **
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+ctcHigh             1.1826     0.8456    0.6479     2.158
+gendermale          0.8852     1.1297    0.4828     1.623
+age_at_diagnosis    1.0001     0.9999    1.0000     1.000
+
+Concordance= 0.637  (se = 0.049 )
+Rsquare= 0.043   (max possible= 0.881 )
+Likelihood ratio test= 8  on 3 df,   p=0.05
+Wald test            = 7.47  on 3 df,   p=0.06
+Score (logrank) test = 7.59  on 3 df,   p=0.06
+
+[1] "Eosinophils"
+Call:
+coxph(formula = Surv(surv_time, death) ~ ctc + gender + age_at_diagnosis, 
+    data = clinic_dat)
+
+  n= 217, number of events= 54 
+   (233 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)  
+ctcHigh          -1.120e+00  3.262e-01  1.011e+00 -1.108   0.2677  
+gendermale       -6.941e-02  9.329e-01  2.778e-01 -0.250   0.8027  
+age_at_diagnosis  7.198e-05  1.000e+00  3.344e-05  2.153   0.0314 *
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+ctcHigh             0.3262     3.0655   0.04499     2.365
+gendermale          0.9329     1.0719   0.54121     1.608
+age_at_diagnosis    1.0001     0.9999   1.00001     1.000
+
+Concordance= 0.597  (se = 0.043 )
+Rsquare= 0.029   (max possible= 0.908 )
+Likelihood ratio test= 6.46  on 3 df,   p=0.09
+Wald test            = 5.7  on 3 df,   p=0.1
+Score (logrank) test = 5.82  on 3 df,   p=0.1
+
+[1] "Neutrophils"
+Call:
+coxph(formula = Surv(surv_time, death) ~ ctc + gender + age_at_diagnosis, 
+    data = clinic_dat)
+
+  n= 221, number of events= 48 
+   (229 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)  
+ctcHigh          -1.228e+00  2.928e-01  1.011e+00 -1.215    0.225  
+gendermale        2.017e-01  1.224e+00  2.953e-01  0.683    0.494  
+age_at_diagnosis  6.169e-05  1.000e+00  3.254e-05  1.896    0.058 .
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+ctcHigh             0.2928     3.4150   0.04035     2.125
+gendermale          1.2235     0.8173   0.68595     2.182
+age_at_diagnosis    1.0001     0.9999   1.00000     1.000
+
+Concordance= 0.592  (se = 0.046 )
+Rsquare= 0.03   (max possible= 0.875 )
+Likelihood ratio test= 6.74  on 3 df,   p=0.08
+Wald test            = 5.8  on 3 df,   p=0.1
+Score (logrank) test = 6  on 3 df,   p=0.1
+
+Warning messages:
+1: In fitter(X, Y, strats, offset, init, control, weights = weights,  :
+  Loglik converged before variable  1 ; beta may be infinite. 
+2: In fitter(X, Y, strats, offset, init, control, weights = weights,  :
+  Loglik converged before variable  1 ; beta may be infinite. 
+3: In fitter(X, Y, strats, offset, init, control, weights = weights,  :
+  Loglik converged before variable  1 ; beta may be infinite. 
+> 
+> 
+> colnames(cox_surv_ct)  = c('n', 'nevent',  "NLow",
++                            colnames(summary(fit1)$coefficient))
+> 
+> cox_surv_ct
+                               n nevent NLow        coef    exp(coef)
+B cells naive                167     34   NA   0.4679246 1.596677e+00
+B cells memory               222     55   NA  -1.0167650 3.617633e-01
+Plasma cells                 188     46   NA  -0.6138017 5.412891e-01
+T cells CD8                  160     40   NA   0.4984786 1.646215e+00
+T cells CD4 naive            222     50   NA  -0.1212712 8.857937e-01
+T cells CD4 memory resting   166     34   NA   0.5358334 1.708872e+00
+T cells CD4 memory activated 170     35   NA  -0.3280980 7.202924e-01
+T cells follicular helper    215     54   NA -17.0922577 3.775085e-08
+T cells regulatory (Tregs)   199     45   NA  -0.2969225 7.431016e-01
+T cells gamma delta          223     53   NA  -0.9795086 3.754956e-01
+NK cells resting             179     38   NA  -0.5120654 5.992566e-01
+NK cells activated           220     55   NA  -0.5436953 5.805988e-01
+Monocytes                    214     56   NA -17.0714492 3.854463e-08
+Macrophages M1               203     48   NA  -0.4802717 6.186153e-01
+Macrophages M2               196     52   NA   0.1449638 1.155998e+00
+Dendritic cells resting      203     50   NA  -1.3624990 2.560202e-01
+Dendritic cells activated    217     48   NA -16.9774136 4.234508e-08
+Mast cells resting           218     50   NA  -0.5921999 5.531092e-01
+Mast cells activated         183     43   NA   0.1676962 1.182577e+00
+Eosinophils                  217     54   NA  -1.1202023 3.262138e-01
+Neutrophils                  221     48   NA  -1.2281733 2.928270e-01
+                                 se(coef)            z   Pr(>|z|)
+B cells naive                   0.3925896  1.191892438 0.23330342
+B cells memory                  1.0103808 -1.006318593 0.31426234
+Plasma cells                    0.4131134 -1.485794747 0.13733342
+T cells CD8                     0.3355339  1.485628093 0.13737752
+T cells CD4 naive               0.7231577 -0.167696712 0.86682188
+T cells CD4 memory resting      0.4081344  1.312884685 0.18922181
+T cells CD4 memory activated    0.3567697 -0.919635394 0.35776332
+T cells follicular helper    2816.3637435 -0.006068910 0.99515774
+T cells regulatory (Tregs)      0.3315342 -0.895601576 0.37046559
+T cells gamma delta             1.0107217 -0.969118068 0.33248628
+NK cells resting                0.3422063 -1.496364631 0.13455866
+NK cells activated              0.7212856 -0.753786454 0.45097746
+Monocytes                    3070.1180500 -0.005560519 0.99556337
+Macrophages M1                  0.4119959 -1.165719689 0.24372780
+Macrophages M2                  0.2807692  0.516309349 0.60563837
+Dendritic cells resting         0.5961711 -2.285415982 0.02228845
+Dendritic cells activated    3262.2901739 -0.005204140 0.99584772
+Mast cells resting              0.5959296 -0.993741364 0.32034880
+Mast cells activated            0.3070029  0.546236428 0.58490343
+Eosinophils                     1.0107511 -1.108286956 0.26773791
+Neutrophils                     1.0112381 -1.214524292 0.22454758
+> 
+> ## --------------------------------------------------------
+> ## Cox regression: dichotomize
+> ## --------------------------------------------------------
+> cox_surv_ct2 = matrix(NA, nrow = ncol(CTcomp), ncol = 8)
+> rownames(cox_surv_ct2) = colnames(CTcomp)
+> 
+> 
+> for(i in colnames(CTcomp)){
++   ctc = cut(CTcomp[,i], breaks = c(-0.01, median(CTcomp[,i]),1),
++             labels =c("Low", "High") ) 
++   fit1 = coxph(Surv(surv_time, death) ~ ctc + gender + stage + 
++                  age_at_diagnosis, data=clinic_dat)
++   print(i)
++   cox_surv_ct2[i,] = c(summary(fit1)$n,
++                       summary(fit1)$nevent,
++                        sum(ctc == "Low"),
++                       summary(fit1)$coefficient[1,])
++   print(summary(fit1))
++ }
+[1] "B cells naive"
+Call:
+coxph(formula = Surv(surv_time, death) ~ ctc + gender + stage + 
+    age_at_diagnosis, data = clinic_dat)
+
+  n= 164, number of events= 32 
+   (286 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)   
+ctcHigh           2.967e-01  1.345e+00  4.237e-01  0.700  0.48372   
+gendermale       -2.941e-01  7.452e-01  3.616e-01 -0.813  0.41603   
+stageii           8.869e-02  1.093e+00  7.009e-01  0.127  0.89931   
+stageiii          6.124e-01  1.845e+00  6.907e-01  0.887  0.37533   
+stageiv           1.965e+00  7.137e+00  6.577e-01  2.988  0.00281 **
+age_at_diagnosis  1.066e-04  1.000e+00  4.599e-05  2.317  0.02050 * 
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+ctcHigh             1.3454     0.7433    0.5865     3.087
+gendermale          0.7452     1.3419    0.3668     1.514
+stageii             1.0927     0.9151    0.2766     4.316
+stageiii            1.8448     0.5421    0.4764     7.144
+stageiv             7.1369     0.1401    1.9666    25.900
+age_at_diagnosis    1.0001     0.9999    1.0000     1.000
+
+Concordance= 0.744  (se = 0.057 )
+Rsquare= 0.13   (max possible= 0.82 )
+Likelihood ratio test= 22.91  on 6 df,   p=8e-04
+Wald test            = 23.64  on 6 df,   p=6e-04
+Score (logrank) test = 28.4  on 6 df,   p=8e-05
+
+[1] "B cells memory"
+Call:
+coxph(formula = Surv(surv_time, death) ~ ctc + gender + stage + 
+    age_at_diagnosis, data = clinic_dat)
+
+  n= 217, number of events= 53 
+   (233 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)    
+ctcHigh          -2.868e-01  7.506e-01  1.034e+00 -0.277 0.781447    
+gendermale       -1.218e-01  8.853e-01  2.786e-01 -0.437 0.661903    
+stageii           2.301e-01  1.259e+00  5.781e-01  0.398 0.690694    
+stageiii          9.765e-01  2.655e+00  5.634e-01  1.733 0.083047 .  
+stageiv           2.142e+00  8.513e+00  5.545e-01  3.862 0.000112 ***
+age_at_diagnosis  6.994e-05  1.000e+00  3.097e-05  2.258 0.023937 *  
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+ctcHigh             0.7506     1.3322   0.09894     5.695
+gendermale          0.8853     1.1296   0.51281     1.528
+stageii             1.2587     0.7945   0.40532     3.909
+stageiii            2.6552     0.3766   0.88010     8.011
+stageiv             8.5131     0.1175   2.87160    25.238
+age_at_diagnosis    1.0001     0.9999   1.00001     1.000
+
+Concordance= 0.722  (se = 0.043 )
+Rsquare= 0.144   (max possible= 0.904 )
+Likelihood ratio test= 33.66  on 6 df,   p=8e-06
+Wald test            = 35.41  on 6 df,   p=4e-06
+Score (logrank) test = 42.85  on 6 df,   p=1e-07
+
+[1] "Plasma cells"
+Call:
+coxph(formula = Surv(surv_time, death) ~ ctc + gender + stage + 
+    age_at_diagnosis, data = clinic_dat)
+
+  n= 182, number of events= 43 
+   (268 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)   
+ctcHigh          -5.526e-01  5.755e-01  4.484e-01 -1.232  0.21787   
+gendermale       -1.207e-01  8.863e-01  3.189e-01 -0.379  0.70498   
+stageii           1.516e-01  1.164e+00  6.487e-01  0.234  0.81519   
+stageiii          7.956e-01  2.216e+00  6.531e-01  1.218  0.22313   
+stageiv           1.807e+00  6.092e+00  6.425e-01  2.812  0.00492 **
+age_at_diagnosis  9.653e-05  1.000e+00  3.616e-05  2.669  0.00760 **
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+ctcHigh             0.5755     1.7377    0.2389     1.386
+gendermale          0.8863     1.1283    0.4744     1.656
+stageii             1.1637     0.8593    0.3263     4.150
+stageiii            2.2158     0.4513    0.6161     7.969
+stageiv             6.0924     0.1641    1.7294    21.463
+age_at_diagnosis    1.0001     0.9999    1.0000     1.000
+
+Concordance= 0.708  (se = 0.049 )
+Rsquare= 0.127   (max possible= 0.883 )
+Likelihood ratio test= 24.75  on 6 df,   p=4e-04
+Wald test            = 25.94  on 6 df,   p=2e-04
+Score (logrank) test = 29.02  on 6 df,   p=6e-05
+
+[1] "T cells CD8"
+Call:
+coxph(formula = Surv(surv_time, death) ~ ctc + gender + stage + 
+    age_at_diagnosis, data = clinic_dat)
+
+  n= 155, number of events= 37 
+   (295 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)    
+ctcHigh           6.614e-01  1.937e+00  3.657e-01  1.808 0.070544 .  
+gendermale       -2.878e-01  7.499e-01  3.515e-01 -0.819 0.412979    
+stageii           1.656e+00  5.239e+00  1.043e+00  1.588 0.112205    
+stageiii          2.362e+00  1.062e+01  1.047e+00  2.256 0.024040 *  
+stageiv           3.537e+00  3.436e+01  1.060e+00  3.337 0.000846 ***
+age_at_diagnosis  1.388e-04  1.000e+00  4.204e-05  3.301 0.000963 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+ctcHigh             1.9375     0.5161    0.9461     3.968
+gendermale          0.7499     1.3335    0.3765     1.494
+stageii             5.2387     0.1909    0.6788    40.431
+stageiii           10.6153     0.0942    1.3640    82.612
+stageiv            34.3640     0.0291    4.3048   274.317
+age_at_diagnosis    1.0001     0.9999    1.0001     1.000
+
+Concordance= 0.748  (se = 0.052 )
+Rsquare= 0.197   (max possible= 0.881 )
+Likelihood ratio test= 34.03  on 6 df,   p=7e-06
+Wald test            = 27.46  on 6 df,   p=1e-04
+Score (logrank) test = 33.83  on 6 df,   p=7e-06
+
+[1] "T cells CD4 naive"
+Call:
+coxph(formula = Surv(surv_time, death) ~ ctc + gender + stage + 
+    age_at_diagnosis, data = clinic_dat)
+
+  n= 217, number of events= 48 
+   (233 observations deleted due to missingness)
+
+                      coef exp(coef)  se(coef)     z Pr(>|z|)    
+ctcHigh          5.371e-01 1.711e+00 7.545e-01 0.712 0.476581    
+gendermale       8.332e-02 1.087e+00 2.973e-01 0.280 0.779305    
+stageii          3.552e-01 1.427e+00 5.772e-01 0.615 0.538270    
+stageiii         1.032e+00 2.807e+00 5.752e-01 1.795 0.072720 .  
+stageiv          2.070e+00 7.927e+00 5.656e-01 3.661 0.000252 ***
+age_at_diagnosis 8.994e-05 1.000e+00 3.458e-05 2.601 0.009291 ** 
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+ctcHigh              1.711     0.5845    0.3899     7.508
+gendermale           1.087     0.9201    0.6069     1.947
+stageii              1.427     0.7010    0.4602     4.422
+stageiii             2.807     0.3562    0.9093     8.666
+stageiv              7.927     0.1262    2.6164    24.017
+age_at_diagnosis     1.000     0.9999    1.0000     1.000
+
+Concordance= 0.711  (se = 0.045 )
+Rsquare= 0.124   (max possible= 0.884 )
+Likelihood ratio test= 28.78  on 6 df,   p=7e-05
+Wald test            = 29.29  on 6 df,   p=5e-05
+Score (logrank) test = 34.44  on 6 df,   p=6e-06
+
+[1] "T cells CD4 memory resting"
+Call:
+coxph(formula = Surv(surv_time, death) ~ ctc + gender + stage + 
+    age_at_diagnosis, data = clinic_dat)
+
+  n= 164, number of events= 32 
+   (286 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)   
+ctcHigh           4.960e-01  1.642e+00  4.231e-01  1.172  0.24112   
+gendermale       -2.062e-02  9.796e-01  3.797e-01 -0.054  0.95668   
+stageii           6.132e-01  1.846e+00  1.094e+00  0.561  0.57509   
+stageiii          1.977e+00  7.221e+00  1.043e+00  1.895  0.05808 . 
+stageiv           2.759e+00  1.578e+01  1.049e+00  2.631  0.00852 **
+age_at_diagnosis  6.379e-05  1.000e+00  4.371e-05  1.459  0.14445   
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+ctcHigh             1.6421    0.60898    0.7165     3.763
+gendermale          0.9796    1.02084    0.4654     2.062
+stageii             1.8464    0.54160    0.2164    15.757
+stageiii            7.2209    0.13849    0.9346    55.790
+stageiv            15.7846    0.06335    2.0206   123.307
+age_at_diagnosis    1.0001    0.99994    1.0000     1.000
+
+Concordance= 0.761  (se = 0.058 )
+Rsquare= 0.143   (max possible= 0.817 )
+Likelihood ratio test= 25.3  on 6 df,   p=3e-04
+Wald test            = 21.89  on 6 df,   p=0.001
+Score (logrank) test = 27.78  on 6 df,   p=1e-04
+
+[1] "T cells CD4 memory activated"
+Call:
+coxph(formula = Surv(surv_time, death) ~ ctc + gender + stage + 
+    age_at_diagnosis, data = clinic_dat)
+
+  n= 165, number of events= 34 
+   (285 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)    
+ctcHigh          -8.421e-02  9.192e-01  3.967e-01 -0.212 0.831900    
+gendermale       -3.700e-01  6.907e-01  3.646e-01 -1.015 0.310180    
+stageii          -1.626e-01  8.499e-01  6.246e-01 -0.260 0.794651    
+stageiii          9.547e-01  2.598e+00  6.016e-01  1.587 0.112542    
+stageiv           2.416e+00  1.121e+01  6.962e-01  3.471 0.000518 ***
+age_at_diagnosis  1.295e-04  1.000e+00  4.174e-05  3.102 0.001921 ** 
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+ctcHigh             0.9192    1.08786    0.4224     2.000
+gendermale          0.6907    1.44771    0.3381     1.411
+stageii             0.8499    1.17654    0.2499     2.891
+stageiii            2.5978    0.38494    0.7989     8.447
+stageiv            11.2064    0.08923    2.8634    43.858
+age_at_diagnosis    1.0001    0.99987    1.0000     1.000
+
+Concordance= 0.723  (se = 0.056 )
+Rsquare= 0.145   (max possible= 0.834 )
+Likelihood ratio test= 25.83  on 6 df,   p=2e-04
+Wald test            = 27.67  on 6 df,   p=1e-04
+Score (logrank) test = 33.03  on 6 df,   p=1e-05
+
+[1] "T cells follicular helper"
+Call:
+coxph(formula = Surv(surv_time, death) ~ ctc + gender + stage + 
+    age_at_diagnosis, data = clinic_dat)
+
+  n= 211, number of events= 52 
+   (239 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)    
+ctcHigh          -1.754e+01  2.405e-08  4.349e+03 -0.004  0.99678    
+gendermale       -8.479e-02  9.187e-01  2.831e-01 -0.299  0.76458    
+stageii           9.602e-01  2.612e+00  7.529e-01  1.275  0.20221    
+stageiii          1.441e+00  4.226e+00  7.628e-01  1.889  0.05884 .  
+stageiv           2.667e+00  1.440e+01  7.429e-01  3.590  0.00033 ***
+age_at_diagnosis  4.041e-05  1.000e+00  3.175e-05  1.273  0.20304    
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+ctcHigh          2.405e-08  4.158e+07    0.0000       Inf
+gendermale       9.187e-01  1.088e+00    0.5275      1.60
+stageii          2.612e+00  3.828e-01    0.5972     11.43
+stageiii         4.226e+00  2.367e-01    0.9476     18.84
+stageiv          1.440e+01  6.945e-02    3.3574     61.76
+age_at_diagnosis 1.000e+00  1.000e+00    1.0000      1.00
+
+Concordance= 0.757  (se = 0.044 )
+Rsquare= 0.169   (max possible= 0.903 )
+Likelihood ratio test= 39.01  on 6 df,   p=7e-07
+Wald test            = 33.5  on 6 df,   p=8e-06
+Score (logrank) test = 48.7  on 6 df,   p=9e-09
+
+[1] "T cells regulatory (Tregs)"
+Call:
+coxph(formula = Surv(surv_time, death) ~ ctc + gender + stage + 
+    age_at_diagnosis, data = clinic_dat)
+
+  n= 194, number of events= 42 
+   (256 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)    
+ctcHigh          -1.885e-01  8.282e-01  3.448e-01 -0.547 0.584627    
+gendermale       -1.977e-01  8.206e-01  3.153e-01 -0.627 0.530681    
+stageii           8.019e-01  2.230e+00  7.621e-01  1.052 0.292687    
+stageiii          1.411e+00  4.101e+00  7.779e-01  1.814 0.069645 .  
+stageiv           2.877e+00  1.776e+01  7.684e-01  3.744 0.000181 ***
+age_at_diagnosis  1.020e-04  1.000e+00  3.641e-05  2.802 0.005082 ** 
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+ctcHigh             0.8282    1.20744    0.4213     1.628
+gendermale          0.8206    1.21856    0.4424     1.522
+stageii             2.2298    0.44847    0.5007     9.930
+stageiii            4.1011    0.24384    0.8928    18.838
+stageiv            17.7560    0.05632    3.9380    80.059
+age_at_diagnosis    1.0001    0.99990    1.0000     1.000
+
+Concordance= 0.755  (se = 0.05 )
+Rsquare= 0.16   (max possible= 0.859 )
+Likelihood ratio test= 33.78  on 6 df,   p=7e-06
+Wald test            = 34.75  on 6 df,   p=5e-06
+Score (logrank) test = 43.55  on 6 df,   p=9e-08
+
+[1] "T cells gamma delta"
+Call:
+coxph(formula = Surv(surv_time, death) ~ ctc + gender + stage + 
+    age_at_diagnosis, data = clinic_dat)
+
+  n= 217, number of events= 51 
+   (233 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)    
+ctcHigh          -2.987e-01  7.418e-01  1.035e+00 -0.289 0.772793    
+gendermale       -4.733e-02  9.538e-01  2.845e-01 -0.166 0.867864    
+stageii           2.796e-01  1.323e+00  5.779e-01  0.484 0.628426    
+stageiii          9.392e-01  2.558e+00  5.668e-01  1.657 0.097484 .  
+stageiv           2.148e+00  8.570e+00  5.566e-01  3.859 0.000114 ***
+age_at_diagnosis  7.012e-05  1.000e+00  3.181e-05  2.204 0.027495 *  
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+ctcHigh             0.7418     1.3481   0.09764     5.635
+gendermale          0.9538     1.0485   0.54615     1.666
+stageii             1.3227     0.7561   0.42617     4.105
+stageiii            2.5580     0.3909   0.84231     7.768
+stageiv             8.5704     0.1167   2.87862    25.516
+age_at_diagnosis    1.0001     0.9999   1.00001     1.000
+
+Concordance= 0.717  (se = 0.044 )
+Rsquare= 0.137   (max possible= 0.894 )
+Likelihood ratio test= 31.99  on 6 df,   p=2e-05
+Wald test            = 34.06  on 6 df,   p=7e-06
+Score (logrank) test = 41.26  on 6 df,   p=3e-07
+
+[1] "NK cells resting"
+Call:
+coxph(formula = Surv(surv_time, death) ~ ctc + gender + stage + 
+    age_at_diagnosis, data = clinic_dat)
+
+  n= 173, number of events= 36 
+   (277 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)    
+ctcHigh          -4.900e-01  6.126e-01  3.646e-01 -1.344 0.179018    
+gendermale        2.277e-01  1.256e+00  3.515e-01  0.648 0.517041    
+stageii           5.362e-01  1.710e+00  6.558e-01  0.818 0.413574    
+stageiii          1.358e+00  3.888e+00  6.623e-01  2.051 0.040316 *  
+stageiv           2.400e+00  1.102e+01  6.741e-01  3.560 0.000371 ***
+age_at_diagnosis  1.078e-04  1.000e+00  3.842e-05  2.805 0.005033 ** 
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+ctcHigh             0.6126    1.63233    0.2998     1.252
+gendermale          1.2558    0.79633    0.6305     2.501
+stageii             1.7096    0.58495    0.4727     6.182
+stageiii            3.8885    0.25717    1.0618    14.240
+stageiv            11.0204    0.09074    2.9402    41.307
+age_at_diagnosis    1.0001    0.99989    1.0000     1.000
+
+Concordance= 0.738  (se = 0.055 )
+Rsquare= 0.142   (max possible= 0.835 )
+Likelihood ratio test= 26.6  on 6 df,   p=2e-04
+Wald test            = 25.81  on 6 df,   p=2e-04
+Score (logrank) test = 30.75  on 6 df,   p=3e-05
+
+[1] "NK cells activated"
+Call:
+coxph(formula = Surv(surv_time, death) ~ ctc + gender + stage + 
+    age_at_diagnosis, data = clinic_dat)
+
+  n= 213, number of events= 52 
+   (237 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)    
+ctcHigh           4.389e-02  1.045e+00  7.461e-01  0.059 0.953092    
+gendermale       -1.722e-01  8.418e-01  2.798e-01 -0.615 0.538385    
+stageii           2.878e-01  1.333e+00  5.699e-01  0.505 0.613636    
+stageiii          8.618e-01  2.367e+00  5.827e-01  1.479 0.139141    
+stageiv           2.088e+00  8.071e+00  5.747e-01  3.634 0.000279 ***
+age_at_diagnosis  5.657e-05  1.000e+00  3.073e-05  1.841 0.065637 .  
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+ctcHigh             1.0449     0.9571    0.2421     4.510
+gendermale          0.8418     1.1879    0.4865     1.457
+stageii             1.3334     0.7499    0.4364     4.075
+stageiii            2.3674     0.4224    0.7556     7.417
+stageiv             8.0706     0.1239    2.6165    24.893
+age_at_diagnosis    1.0001     0.9999    1.0000     1.000
+
+Concordance= 0.716  (se = 0.045 )
+Rsquare= 0.122   (max possible= 0.898 )
+Likelihood ratio test= 27.78  on 6 df,   p=1e-04
+Wald test            = 30.96  on 6 df,   p=3e-05
+Score (logrank) test = 37.53  on 6 df,   p=1e-06
+
+[1] "Monocytes"
+Call:
+coxph(formula = Surv(surv_time, death) ~ ctc + gender + stage + 
+    age_at_diagnosis, data = clinic_dat)
+
+  n= 209, number of events= 54 
+   (241 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)    
+ctcHigh          -1.719e+01  3.414e-08  3.756e+03 -0.005 0.996347    
+gendermale       -3.168e-01  7.285e-01  2.768e-01 -1.144 0.252448    
+stageii           5.543e-01  1.741e+00  6.348e-01  0.873 0.382630    
+stageiii          1.119e+00  3.063e+00  6.344e-01  1.764 0.077677 .  
+stageiv           2.240e+00  9.394e+00  6.232e-01  3.595 0.000325 ***
+age_at_diagnosis  7.173e-05  1.000e+00  3.280e-05  2.187 0.028761 *  
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+ctcHigh          3.414e-08  2.929e+07    0.0000       Inf
+gendermale       7.285e-01  1.373e+00    0.4234     1.253
+stageii          1.741e+00  5.745e-01    0.5016     6.041
+stageiii         3.063e+00  3.265e-01    0.8833    10.620
+stageiv          9.394e+00  1.064e-01    2.7695    31.866
+age_at_diagnosis 1.000e+00  9.999e-01    1.0000     1.000
+
+Concordance= 0.735  (se = 0.043 )
+Rsquare= 0.159   (max possible= 0.914 )
+Likelihood ratio test= 36.23  on 6 df,   p=2e-06
+Wald test            = 30.22  on 6 df,   p=4e-05
+Score (logrank) test = 42.08  on 6 df,   p=2e-07
+
+[1] "Macrophages M1"
+Call:
+coxph(formula = Surv(surv_time, death) ~ ctc + gender + stage + 
+    age_at_diagnosis, data = clinic_dat)
+
+  n= 196, number of events= 45 
+   (254 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)   
+ctcHigh          -3.671e-01  6.927e-01  4.490e-01 -0.818  0.41356   
+gendermale       -2.914e-01  7.472e-01  3.070e-01 -0.949  0.34266   
+stageii           1.021e+00  2.777e+00  7.552e-01  1.353  0.17618   
+stageiii          1.521e+00  4.576e+00  7.680e-01  1.980  0.04767 * 
+stageiv           2.513e+00  1.234e+01  7.642e-01  3.288  0.00101 **
+age_at_diagnosis  7.737e-05  1.000e+00  3.678e-05  2.104  0.03540 * 
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+ctcHigh             0.6927    1.44357    0.2873     1.670
+gendermale          0.7472    1.33824    0.4094     1.364
+stageii             2.7773    0.36007    0.6321    12.202
+stageiii            4.5760    0.21853    1.0157    20.615
+stageiv            12.3397    0.08104    2.7594    55.181
+age_at_diagnosis    1.0001    0.99992    1.0000     1.000
+
+Concordance= 0.729  (se = 0.049 )
+Rsquare= 0.12   (max possible= 0.873 )
+Likelihood ratio test= 25.1  on 6 df,   p=3e-04
+Wald test            = 24.19  on 6 df,   p=5e-04
+Score (logrank) test = 29.67  on 6 df,   p=5e-05
+
+[1] "Macrophages M2"
+Call:
+coxph(formula = Surv(surv_time, death) ~ ctc + gender + stage + 
+    age_at_diagnosis, data = clinic_dat)
+
+  n= 193, number of events= 49 
+   (257 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)    
+ctcHigh           2.021e-01  1.224e+00  2.964e-01  0.682 0.495282    
+gendermale       -5.350e-01  5.857e-01  2.965e-01 -1.804 0.071201 .  
+stageii           5.479e-01  1.730e+00  6.344e-01  0.864 0.387729    
+stageiii          1.209e+00  3.349e+00  6.305e-01  1.917 0.055233 .  
+stageiv           2.196e+00  8.986e+00  6.466e-01  3.396 0.000684 ***
+age_at_diagnosis  8.660e-05  1.000e+00  3.432e-05  2.523 0.011635 *  
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+ctcHigh             1.2240     0.8170    0.6847     2.188
+gendermale          0.5857     1.7075    0.3275     1.047
+stageii             1.7297     0.5781    0.4989     5.997
+stageiii            3.3488     0.2986    0.9733    11.522
+stageiv             8.9860     0.1113    2.5305    31.910
+age_at_diagnosis    1.0001     0.9999    1.0000     1.000
+
+Concordance= 0.686  (se = 0.046 )
+Rsquare= 0.122   (max possible= 0.901 )
+Likelihood ratio test= 25.16  on 6 df,   p=3e-04
+Wald test            = 25  on 6 df,   p=3e-04
+Score (logrank) test = 27.89  on 6 df,   p=1e-04
+
+[1] "Dendritic cells resting"
+Call:
+coxph(formula = Surv(surv_time, death) ~ ctc + gender + stage + 
+    age_at_diagnosis, data = clinic_dat)
+
+  n= 198, number of events= 48 
+   (252 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)   
+ctcHigh          -1.036e+00  3.549e-01  6.027e-01 -1.719  0.08564 . 
+gendermale       -1.416e-01  8.680e-01  2.953e-01 -0.480  0.63155   
+stageii           5.995e-01  1.821e+00  6.480e-01  0.925  0.35487   
+stageiii          1.450e+00  4.264e+00  6.259e-01  2.317  0.02050 * 
+stageiv           2.036e+00  7.658e+00  6.492e-01  3.136  0.00171 **
+age_at_diagnosis  1.040e-04  1.000e+00  3.437e-05  3.025  0.00249 **
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+ctcHigh             0.3549     2.8179    0.1089     1.156
+gendermale          0.8680     1.1521    0.4866     1.548
+stageii             1.8212     0.5491    0.5115     6.485
+stageiii            4.2641     0.2345    1.2505    14.540
+stageiv             7.6578     0.1306    2.1454    27.334
+age_at_diagnosis    1.0001     0.9999    1.0000     1.000
+
+Concordance= 0.725  (se = 0.045 )
+Rsquare= 0.158   (max possible= 0.9 )
+Likelihood ratio test= 34.13  on 6 df,   p=6e-06
+Wald test            = 29.52  on 6 df,   p=5e-05
+Score (logrank) test = 34.3  on 6 df,   p=6e-06
+
+[1] "Dendritic cells activated"
+Call:
+coxph(formula = Surv(surv_time, death) ~ ctc + gender + stage + 
+    age_at_diagnosis, data = clinic_dat)
+
+  n= 213, number of events= 47 
+   (237 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)    
+ctcHigh          -1.697e+01  4.280e-08  4.263e+03 -0.004 0.996824    
+gendermale       -3.176e-02  9.687e-01  2.947e-01 -0.108 0.914179    
+stageii           8.225e-01  2.276e+00  6.341e-01  1.297 0.194610    
+stageiii          1.195e+00  3.304e+00  6.482e-01  1.844 0.065236 .  
+stageiv           2.384e+00  1.085e+01  6.337e-01  3.763 0.000168 ***
+age_at_diagnosis  9.996e-05  1.000e+00  3.578e-05  2.794 0.005211 ** 
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+ctcHigh          4.280e-08  2.336e+07    0.0000       Inf
+gendermale       9.687e-01  1.032e+00    0.5437     1.726
+stageii          2.276e+00  4.393e-01    0.6568     7.888
+stageiii         3.304e+00  3.027e-01    0.9274    11.770
+stageiv          1.085e+01  9.214e-02    3.1345    37.575
+age_at_diagnosis 1.000e+00  9.999e-01    1.0000     1.000
+
+Concordance= 0.727  (se = 0.045 )
+Rsquare= 0.152   (max possible= 0.884 )
+Likelihood ratio test= 35.07  on 6 df,   p=4e-06
+Wald test            = 25.74  on 6 df,   p=2e-04
+Score (logrank) test = 39.92  on 6 df,   p=5e-07
+
+[1] "Mast cells resting"
+Call:
+coxph(formula = Surv(surv_time, death) ~ ctc + gender + stage + 
+    age_at_diagnosis, data = clinic_dat)
+
+  n= 211, number of events= 47 
+   (239 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)    
+ctcHigh          -1.781e-01  8.368e-01  6.049e-01 -0.294 0.768407    
+gendermale       -2.261e-01  7.976e-01  2.981e-01 -0.759 0.448146    
+stageii           1.201e-01  1.128e+00  5.819e-01  0.206 0.836513    
+stageiii          8.419e-01  2.321e+00  5.753e-01  1.463 0.143395    
+stageiv           2.124e+00  8.369e+00  5.636e-01  3.770 0.000163 ***
+age_at_diagnosis  8.120e-05  1.000e+00  3.385e-05  2.399 0.016455 *  
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+ctcHigh             0.8368     1.1950    0.2557     2.739
+gendermale          0.7976     1.2537    0.4447     1.431
+stageii             1.1276     0.8868    0.3604     3.528
+stageiii            2.3207     0.4309    0.7514     7.167
+stageiv             8.3687     0.1195    2.7729    25.257
+age_at_diagnosis    1.0001     0.9999    1.0000     1.000
+
+Concordance= 0.734  (se = 0.047 )
+Rsquare= 0.142   (max possible= 0.876 )
+Likelihood ratio test= 32.23  on 6 df,   p=1e-05
+Wald test            = 35.04  on 6 df,   p=4e-06
+Score (logrank) test = 42.96  on 6 df,   p=1e-07
+
+[1] "Mast cells activated"
+Call:
+coxph(formula = Surv(surv_time, death) ~ ctc + gender + stage + 
+    age_at_diagnosis, data = clinic_dat)
+
+  n= 179, number of events= 42 
+   (271 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)    
+ctcHigh           2.187e-01  1.244e+00  3.164e-01  0.691 0.489396    
+gendermale       -1.080e-01  8.976e-01  3.188e-01 -0.339 0.734700    
+stageii           1.312e+00  3.714e+00  1.050e+00  1.250 0.211247    
+stageiii          2.175e+00  8.802e+00  1.058e+00  2.056 0.039768 *  
+stageiv           3.217e+00  2.496e+01  1.052e+00  3.059 0.002220 ** 
+age_at_diagnosis  1.403e-04  1.000e+00  4.051e-05  3.465 0.000531 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+ctcHigh             1.2445    0.80356    0.6694     2.314
+gendermale          0.8976    1.11408    0.4805     1.677
+stageii             3.7137    0.26927    0.4748    29.050
+stageiii            8.8023    0.11361    1.1071    69.985
+stageiv            24.9632    0.04006    3.1773   196.130
+age_at_diagnosis    1.0001    0.99986    1.0001     1.000
+
+Concordance= 0.762  (se = 0.05 )
+Rsquare= 0.189   (max possible= 0.881 )
+Likelihood ratio test= 37.5  on 6 df,   p=1e-06
+Wald test            = 32.2  on 6 df,   p=1e-05
+Score (logrank) test = 39.29  on 6 df,   p=6e-07
+
+[1] "Eosinophils"
+Call:
+coxph(formula = Surv(surv_time, death) ~ ctc + gender + stage + 
+    age_at_diagnosis, data = clinic_dat)
+
+  n= 210, number of events= 51 
+   (240 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)    
+ctcHigh          -1.2443483  0.2881286  1.0388095 -1.198 0.230972    
+gendermale       -0.1425555  0.8671395  0.2966598 -0.481 0.630847    
+stageii           1.1860782  3.2742151  1.0561433  1.123 0.261426    
+stageiii          2.5936897 13.3790454  1.0298446  2.519 0.011785 *  
+stageiv           3.6108230 36.9964898  1.0331001  3.495 0.000474 ***
+age_at_diagnosis  0.0001226  1.0001226  0.0000383  3.201 0.001370 ** 
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+ctcHigh             0.2881    3.47067   0.03761     2.207
+gendermale          0.8671    1.15322   0.48481     1.551
+stageii             3.2742    0.30542   0.41316    25.948
+stageiii           13.3790    0.07474   1.77754   100.700
+stageiv            36.9965    0.02703   4.88410   280.244
+age_at_diagnosis    1.0001    0.99988   1.00005     1.000
+
+Concordance= 0.801  (se = 0.044 )
+Rsquare= 0.239   (max possible= 0.902 )
+Likelihood ratio test= 57.31  on 6 df,   p=2e-10
+Wald test            = 45.82  on 6 df,   p=3e-08
+Score (logrank) test = 62.23  on 6 df,   p=2e-11
+
+[1] "Neutrophils"
+Call:
+coxph(formula = Surv(surv_time, death) ~ ctc + gender + stage + 
+    age_at_diagnosis, data = clinic_dat)
+
+  n= 217, number of events= 47 
+   (233 observations deleted due to missingness)
+
+                       coef  exp(coef)   se(coef)      z Pr(>|z|)   
+ctcHigh          -8.062e-01  4.465e-01  1.022e+00 -0.789  0.43002   
+gendermale        2.858e-03  1.003e+00  3.112e-01  0.009  0.99267   
+stageii           2.476e-01  1.281e+00  5.714e-01  0.433  0.66476   
+stageiii          6.906e-01  1.995e+00  5.865e-01  1.177  0.23904   
+stageiv           1.643e+00  5.172e+00  5.660e-01  2.903  0.00369 **
+age_at_diagnosis  6.713e-05  1.000e+00  3.334e-05  2.014  0.04406 * 
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+                 exp(coef) exp(-coef) lower .95 upper .95
+ctcHigh             0.4465     2.2394   0.06029     3.307
+gendermale          1.0029     0.9971   0.54495     1.846
+stageii             1.2810     0.7807   0.41798     3.926
+stageiii            1.9949     0.5013   0.63192     6.297
+stageiv             5.1721     0.1933   1.70561    15.684
+age_at_diagnosis    1.0001     0.9999   1.00000     1.000
+
+Concordance= 0.696  (se = 0.046 )
+Rsquare= 0.101   (max possible= 0.874 )
+Likelihood ratio test= 23.1  on 6 df,   p=8e-04
+Wald test            = 23.94  on 6 df,   p=5e-04
+Score (logrank) test = 27.73  on 6 df,   p=1e-04
+
+Warning messages:
+1: In fitter(X, Y, strats, offset, init, control, weights = weights,  :
+  Loglik converged before variable  1 ; beta may be infinite. 
+2: In fitter(X, Y, strats, offset, init, control, weights = weights,  :
+  Loglik converged before variable  1 ; beta may be infinite. 
+3: In fitter(X, Y, strats, offset, init, control, weights = weights,  :
+  Loglik converged before variable  1 ; beta may be infinite. 
+> 
+> 
+> colnames(cox_surv_ct2)  = c('n', 'nevent',  "NLow",
++                            colnames(summary(fit1)$coefficient))
+> 
+> cox_surv_ct2
+                               n nevent NLow         coef    exp(coef)
+B cells naive                164     32   NA   0.29669795 1.345409e+00
+B cells memory               217     53   NA  -0.28683453 7.506359e-01
+Plasma cells                 182     43   NA  -0.55258410 5.754608e-01
+T cells CD8                  155     37   NA   0.66139464 1.937493e+00
+T cells CD4 naive            217     48   NA   0.53708172 1.711006e+00
+T cells CD4 memory resting   164     32   NA   0.49596985 1.642090e+00
+T cells CD4 memory activated 165     34   NA  -0.08421008 9.192381e-01
+T cells follicular helper    211     52   NA -17.54323107 2.404759e-08
+T cells regulatory (Tregs)   194     42   NA  -0.18849883 8.282015e-01
+T cells gamma delta          217     51   NA  -0.29871523 7.417706e-01
+NK cells resting             173     36   NA  -0.49000765 6.126217e-01
+NK cells activated           213     52   NA   0.04389104 1.044869e+00
+Monocytes                    209     54   NA -17.19266122 3.414461e-08
+Macrophages M1               196     45   NA  -0.36711946 6.927269e-01
+Macrophages M2               193     49   NA   0.20211890 1.223994e+00
+Dendritic cells resting      198     48   NA  -1.03599524 3.548730e-01
+Dendritic cells activated    213     47   NA -16.96662379 4.280445e-08
+Mast cells resting           211     47   NA  -0.17813123 8.368326e-01
+Mast cells activated         179     42   NA   0.21870749 1.244467e+00
+Eosinophils                  210     51   NA  -1.24434833 2.881286e-01
+Neutrophils                  217     47   NA  -0.80622864 4.465390e-01
+                                 se(coef)            z   Pr(>|z|)
+B cells naive                   0.4236569  0.700326073 0.48372369
+B cells memory                  1.0338854 -0.277433565 0.78144721
+Plasma cells                    0.4484488 -1.232212344 0.21786977
+T cells CD8                     0.3657338  1.808404233 0.07054361
+T cells CD4 naive               0.7545276  0.711811869 0.47658128
+T cells CD4 memory resting      0.4231175  1.172179948 0.24112482
+T cells CD4 memory activated    0.3967202 -0.212265676 0.83189977
+T cells follicular helper    4349.2708680 -0.004033603 0.99678166
+T cells regulatory (Tregs)      0.3448327 -0.546638446 0.58462715
+T cells gamma delta             1.0346043 -0.288724122 0.77279250
+NK cells resting                0.3646475 -1.343784347 0.17901813
+NK cells activated              0.7461378  0.058824310 0.95309205
+Monocytes                    3755.5176891 -0.004577974 0.99634732
+Macrophages M1                  0.4489946 -0.817647736 0.41355836
+Macrophages M2                  0.2963914  0.681932427 0.49528168
+Dendritic cells resting         0.6027242 -1.718854534 0.08564086
+Dendritic cells activated    4262.7963980 -0.003980163 0.99682430
+Mast cells resting              0.6049447 -0.294458721 0.76840740
+Mast cells activated            0.3163855  0.691269081 0.48939646
+Eosinophils                     1.0388095 -1.197859931 0.23097155
+Neutrophils                     1.0216277 -0.789160883 0.43001798
+> 
+> q("no")
+> proc.time()
+   user  system elapsed 
+  1.786   0.156   1.951 

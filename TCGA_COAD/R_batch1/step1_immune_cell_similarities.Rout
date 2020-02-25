@@ -1,0 +1,1062 @@
+
+R version 3.4.1 (2017-06-30) -- "Single Candle"
+Copyright (C) 2017 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> 
+> # -------------------------------------------------------------------
+> # read in data
+> # LM22-ref-sample.txt: gene expression data of purified samples
+> # LM22-classes.txt: matching between gene expression reference sample 
+> #                   vs. cell types. some samples do not match to any 
+> #                   one of the 22 cell types, we will remove them.
+> # -------------------------------------------------------------------
+> 
+> rDat = read.table("../data/LM22-ref-sample.txt", as.is=TRUE, sep="\t",
++                   header=TRUE, quote="")
+> dim(rDat)
+[1] 11866   195
+> rDat[1:2,1:5]
+  Relabel A_LW_.BAFF_U133A_250303..Chtanova_immune.A_LW_.BAFF_U133A_250303.
+1    A1CF                                                        123.126291
+2     A2M                                                          6.717625
+  A_LW_.BAFF_U133A_70303..Chtanova_immune.A_LW_.BAFF_U133A_70303.
+1                                                       200.09659
+2                                                        20.11804
+  A_LW_.BAFF_U133A_250303..Chtanova_immune.A_LW_.BAFF_U133A_250303..1
+1                                                            98.13187
+2                                                            66.06973
+  A_LW_.BAFF_U133A_70303..Chtanova_immune.A_LW_.BAFF_U133A_70303..1
+1                                                         101.01142
+2                                                          92.85021
+> 
+> cDat = read.table("../data/LM22-classes.txt", as.is=TRUE, sep="\t",
++                   header=FALSE, quote="")
+> dim(cDat)
+[1]  22 195
+> cDat[1:2,1:5]
+              V1 V2 V3 V4 V5
+1  B cells naive  0  0  0  0
+2 B cells memory  0  0  0  0
+> 
+> rownames(rDat) = rDat$Relabel
+> rDat = data.matrix(rDat[,-1])
+> 
+> rownames(cDat) = cDat$V1
+> cDat = data.matrix(cDat[,-1])
+> 
+> table(colSums(cDat))
+
+  0  43 
+ 81 113 
+> w2kp = which(colSums(cDat) > 0)
+> 
+> rDat = rDat[,w2kp]
+> cDat = cDat[,w2kp]
+> 
+> dim(rDat)
+[1] 11866   113
+> rDat[1:2,1:5]
+     A_LW_mastcellctrl_U133A..Chtanova_immune.A_LW_mastcellctrl_U133A.
+A1CF                                                          131.3877
+A2M                                                           835.0097
+     A_LW_mastcellIgE_U133A..Chtanova_immune.A_LW_mastcellIgE_U133A.
+A1CF                                                        103.7296
+A2M                                                        1911.7137
+     A_LW_neutrophil_U133A..Chtanova_immune.A_LW_neutrophil_U133A.
+A1CF                                                     157.71611
+A2M                                                       28.01728
+     A_MF_2hrEosinophils_U133A..Chtanova_immune.A_MF_2hrEosinophils_U133A.
+A1CF                                                             261.26722
+A2M                                                               17.04427
+     A_MF_ControlEosinophil..Chtanova_immune.A_MF_ControlEosinophil.
+A1CF                                                        55.47145
+A2M                                                         14.72317
+> 
+> dim(cDat)
+[1]  22 113
+> cDat[1:2,1:5]
+               V20 V21 V22 V23 V28
+B cells naive    2   2   2   2   2
+B cells memory   2   2   2   2   2
+> 
+> apply(cDat, 1, table)
+  B cells naive B cells memory Plasma cells T cells CD8 T cells CD4 naive
+1             7              8            7           4                 3
+2           106            105          106         109               110
+  T cells CD4 memory resting T cells CD4 memory activated
+1                          3                            3
+2                        110                          110
+  T cells follicular helper T cells gamma delta T cells regulatory (Tregs)
+1                         3                   2                          2
+2                       110                 111                        111
+  NK cells resting NK cells activated Monocytes Macrophages M0 Macrophages M1
+1                4                 11        12             12              3
+2              109                102       101            101            110
+  Macrophages M2 Dendritic cells resting Dendritic cells activated
+1              3                       6                         6
+2            110                     107                       107
+  Mast cells resting Mast cells activated Eosinophils Neutrophils
+1                  2                    2           2           8
+2                111                  111         111         105
+> 
+> # -----------------------------------------------------------------
+> # simplify sample name
+> # -----------------------------------------------------------------
+> 
+> colnames(rDat)
+  [1] "A_LW_mastcellctrl_U133A..Chtanova_immune.A_LW_mastcellctrl_U133A."                             
+  [2] "A_LW_mastcellIgE_U133A..Chtanova_immune.A_LW_mastcellIgE_U133A."                               
+  [3] "A_LW_neutrophil_U133A..Chtanova_immune.A_LW_neutrophil_U133A."                                 
+  [4] "A_MF_2hrEosinophils_U133A..Chtanova_immune.A_MF_2hrEosinophils_U133A."                         
+  [5] "A_MF_ControlEosinophil..Chtanova_immune.A_MF_ControlEosinophil."                               
+  [6] "A_MF_ControlMASTCELL_U133A..Chtanova_immune.A_MF_ControlMASTCELL_U133A."                       
+  [7] "A_MF_IgEMASTCELL_U133A..Chtanova_immune.A_MF_IgEMASTCELL_U133A."                               
+  [8] "A_MF_neutrophils_U133A..Chtanova_immune.A_MF_neutrophils_U133A."                               
+  [9] "A_TS_MSNeutroLPS_U133A..Chtanova_immune.A_TS_MSNeutroLPS_U133A."                               
+ [10] "A_TS_RN_gdTcells_U133A..Chtanova_immune.A_TS_RN_gdTcells_U133A."                               
+ [11] "A_TS_RN_gdTcellsREP_A..Chtanova_immune.A_TS_RN_gdTcellsREP_A."                                 
+ [12] "CD8Tcell.N0.1..HG.U133A...IRIS_GSE22886.GSM565269."                                            
+ [13] "CD8Tcell.N0.2..HG.U133A...IRIS_GSE22886.GSM565270."                                            
+ [14] "CD8Tcell.N0.3..HG.U133A...IRIS_GSE22886.GSM565271."                                            
+ [15] "CD8Tcell.N0.4..HG.U133A...IRIS_GSE22886.GSM565272."                                            
+ [16] "MemoryTcell.RO.unactivated.1..HG.U133A...IRIS_GSE22886.GSM565287."                             
+ [17] "MemoryTcell.RO.unactivated.2..HG.U133A...IRIS_GSE22886.GSM565288."                             
+ [18] "MemoryTcell.RO.unactivated.3..HG.U133A...IRIS_GSE22886.GSM565289."                             
+ [19] "MemoryTcell.RO.activated.1..HG.U133A...IRIS_GSE22886.GSM565290."                               
+ [20] "MemoryTcell.RO.activated.2..HG.U133A...IRIS_GSE22886.GSM565291."                               
+ [21] "MemoryTcell.RO.activated.3..HG.U133A...IRIS_GSE22886.GSM565292."                               
+ [22] "NKcell.control.1..HG.U133A...IRIS_GSE22886.GSM565293."                                         
+ [23] "NKcell.control.2..HG.U133A...IRIS_GSE22886.GSM565294."                                         
+ [24] "NKcell.control.3..HG.U133A...IRIS_GSE22886.GSM565295."                                         
+ [25] "NKcell.control.4..HG.U133A...IRIS_GSE22886.GSM565296."                                         
+ [26] "NKcell.IL2stimulated.1..HG.U133A...IRIS_GSE22886.GSM565297."                                   
+ [27] "NKcell.IL2stimulated.2..HG.U133A...IRIS_GSE22886.GSM565298."                                   
+ [28] "NKcell.IL2stimulated.3..HG.U133A...IRIS_GSE22886.GSM565299."                                   
+ [29] "NKcell.IL2stimulated.4..HG.U133A...IRIS_GSE22886.GSM565300."                                   
+ [30] "NKcell.IL2stimulated.5..HG.U133A...IRIS_GSE22886.GSM565301."                                   
+ [31] "NKcell.IL15stimulated.1..HG.U133A...IRIS_GSE22886.GSM565302."                                  
+ [32] "NKcell.IL15stimulated.2..HG.U133A...IRIS_GSE22886.GSM565303."                                  
+ [33] "NKcell.IL15stimulated.3..HG.U133A...IRIS_GSE22886.GSM565304."                                  
+ [34] "NKcell.IL15stimulated.4..HG.U133A...IRIS_GSE22886.GSM565305."                                  
+ [35] "NKcell.IL15stimulated.5..HG.U133A...IRIS_GSE22886.GSM565306."                                  
+ [36] "NKcell.IL15stimulated.6..HG.U133A...IRIS_GSE22886.GSM565307."                                  
+ [37] "Bcell.naive.1..HG.U133A...IRIS_GSE22886.GSM565308."                                            
+ [38] "Bcell.naive.2..HG.U133A...IRIS_GSE22886.GSM565309."                                            
+ [39] "Bcell.naive.3..HG.U133A...IRIS_GSE22886.GSM565310."                                            
+ [40] "Bcell.naive.4..HG.U133A...IRIS_GSE22886.GSM565311."                                            
+ [41] "Bcell.naive.5..HG.U133A...IRIS_GSE22886.GSM565312."                                            
+ [42] "Bcell.naive.6..HG.U133A...IRIS_GSE22886.GSM565313."                                            
+ [43] "Bcell.naive.7..HG.U133A...IRIS_GSE22886.GSM565314."                                            
+ [44] "Bcell.Memory_IgG_IgA.1..HG.U133A...IRIS_GSE22886.GSM565315."                                   
+ [45] "Bcell.Memory_IgG_IgA.2..HG.U133A...IRIS_GSE22886.GSM565316."                                   
+ [46] "Bcell.Memory_IgG_IgA.3..HG.U133A...IRIS_GSE22886.GSM565317."                                   
+ [47] "Bcell.Memory_IgG_IgA.4..HG.U133A...IRIS_GSE22886.GSM565318."                                   
+ [48] "Bcell.Memory_IgM.1..HG.U133A...IRIS_GSE22886.GSM565319."                                       
+ [49] "Bcell.Memory_IgM.2..HG.U133A...IRIS_GSE22886.GSM565320."                                       
+ [50] "Bcell.Memory_IgM.3..HG.U133A...IRIS_GSE22886.GSM565321."                                       
+ [51] "Bcell.Memory_IgM.4..HG.U133A...IRIS_GSE22886.GSM565322."                                       
+ [52] "PlasmaCell.FromPBMC.1..HG.U133A...IRIS_GSE22886.GSM565323."                                    
+ [53] "PlasmaCell.FromPBMC.2..HG.U133A...IRIS_GSE22886.GSM565324."                                    
+ [54] "PlasmaCell.FromPBMC.3..HG.U133A...IRIS_GSE22886.GSM565325."                                    
+ [55] "PlasmaCell.FromBoneMarrow.1..HG.U133A...IRIS_GSE22886.GSM565326."                              
+ [56] "PlasmaCell.FromBoneMarrow.2..HG.U133A...IRIS_GSE22886.GSM565327."                              
+ [57] "PlasmaCell.FromBoneMarrow.3..HG.U133A...IRIS_GSE22886.GSM565328."                              
+ [58] "PlasmaCell.FromBoneMarrow.4..HG.U133A...IRIS_GSE22886.GSM565329."                              
+ [59] "Monocyte.Day0.1..HG.U133A...IRIS_GSE22886.GSM565330."                                          
+ [60] "Monocyte.Day0.2..HG.U133A...IRIS_GSE22886.GSM565331."                                          
+ [61] "Monocyte.Day0.3..HG.U133A...IRIS_GSE22886.GSM565332."                                          
+ [62] "Monocyte.Day0.4..HG.U133A...IRIS_GSE22886.GSM565333."                                          
+ [63] "Monocyte.Day0.5..HG.U133A...IRIS_GSE22886.GSM565334."                                          
+ [64] "Monocyte.Day0.6..HG.U133A...IRIS_GSE22886.GSM565335."                                          
+ [65] "Monocyte.Day0.7..HG.U133A...IRIS_GSE22886.GSM565336."                                          
+ [66] "Monocyte.Day0.8..HG.U133A...IRIS_GSE22886.GSM565337."                                          
+ [67] "Monocyte.Day0.9..HG.U133A...IRIS_GSE22886.GSM565338."                                          
+ [68] "Monocyte.Day0.10..HG.U133A...IRIS_GSE22886.GSM565339."                                         
+ [69] "Monocyte.Day0.11..HG.U133A...IRIS_GSE22886.GSM565340."                                         
+ [70] "Monocyte.Day0.12..HG.U133A...IRIS_GSE22886.GSM565341."                                         
+ [71] "Monocyte.Day7.1..HG.U133A...IRIS_GSE22886.GSM565354."                                          
+ [72] "Monocyte.Day7.2..HG.U133A...IRIS_GSE22886.GSM565355."                                          
+ [73] "Monocyte.Day7.3..HG.U133A...IRIS_GSE22886.GSM565356."                                          
+ [74] "Monocyte.Day7.4..HG.U133A...IRIS_GSE22886.GSM565357."                                          
+ [75] "Monocyte.Day7.5..HG.U133A...IRIS_GSE22886.GSM565358."                                          
+ [76] "Monocyte.Day7.6..HG.U133A...IRIS_GSE22886.GSM565359."                                          
+ [77] "Monocyte.Day7.7..HG.U133A...IRIS_GSE22886.GSM565360."                                          
+ [78] "Monocyte.Day7.8..HG.U133A...IRIS_GSE22886.GSM565361."                                          
+ [79] "Monocyte.Day7.9..HG.U133A...IRIS_GSE22886.GSM565362."                                          
+ [80] "Monocyte.Day7.10..HG.U133A...IRIS_GSE22886.GSM565363."                                         
+ [81] "Monocyte.Day7.11..HG.U133A...IRIS_GSE22886.GSM565364."                                         
+ [82] "Monocyte.Day7.12..HG.U133A...IRIS_GSE22886.GSM565365."                                         
+ [83] "DendriticCell.Control.1..HG.U133A...IRIS_GSE22886.GSM565366."                                  
+ [84] "DendriticCell.Control.2..HG.U133A...IRIS_GSE22886.GSM565367."                                  
+ [85] "DendriticCell.Control.3..HG.U133A...IRIS_GSE22886.GSM565368."                                  
+ [86] "DendriticCell.Control.4..HG.U133A...IRIS_GSE22886.GSM565369."                                  
+ [87] "DendriticCell.Control.5..HG.U133A...IRIS_GSE22886.GSM565370."                                  
+ [88] "DendriticCell.Control.6..HG.U133A...IRIS_GSE22886.GSM565371."                                  
+ [89] "DendriticCell.LPSstimulated.1..HG.U133A...IRIS_GSE22886.GSM565372."                            
+ [90] "DendriticCell.LPSstimulated.2..HG.U133A...IRIS_GSE22886.GSM565373."                            
+ [91] "DendriticCell.LPSstimulated.3..HG.U133A...IRIS_GSE22886.GSM565374."                            
+ [92] "DendriticCell.LPSstimulated.4..HG.U133A...IRIS_GSE22886.GSM565375."                            
+ [93] "DendriticCell.LPSstimulated.5..HG.U133A...IRIS_GSE22886.GSM565376."                            
+ [94] "DendriticCell.LPSstimulated.6..HG.U133A...IRIS_GSE22886.GSM565377."                            
+ [95] "Neutrophil.Resting.1..HG.U133A...IRIS_GSE22886.GSM565378."                                     
+ [96] "Neutrophil.Resting.2..HG.U133A...IRIS_GSE22886.GSM565379."                                     
+ [97] "Neutrophil.Resting.3..HG.U133A...IRIS_GSE22886.GSM565380."                                     
+ [98] "Neutrophil.Resting.4..HG.U133A...IRIS_GSE22886.GSM565381."                                     
+ [99] "Neutrophil.Resting.5..HG.U133A...IRIS_GSE22886.GSM565382."                                     
+[100] "X.classical.or.M1.activated.macrophages..biological.rep1.HG.U133A..M1_M2_GSE7138.GSM115055.."  
+[101] "X.classical.or.M1.activated.macrophages..biological.rep2.HG.U133A..M1_M2_GSE7138.GSM115056.."  
+[102] "X.classical.or.M1.activated.macrophages..biological.rep3.HG.U133A..M1_M2_GSE7138.GSM115057.."  
+[103] "X.Alternative.or.M2.activated.macrophages..biological.rep1.HG.U133A..M1_M2_GSE7138.GSM115058.."
+[104] "X.Alternative.or.M2.activated.macrophages..biological.rep2.HG.U133A..M1_M2_GSE7138.GSM115059.."
+[105] "X.Alternative.or.M2.activated.macrophages..biological.rep3.HG.U133A..M1_M2_GSE7138.GSM115060.."
+[106] "CXCR5hiICOShi_U133A_1..TFH_E.MEXP.750.CXCR5hiICOShi_U133A_1."                                  
+[107] "CXCR5hiICOShi_U133A_2..TFH_E.MEXP.750.CXCR5hiICOShi_U133A_2."                                  
+[108] "CXCR5hiICOShi_U133A_3..TFH_E.MEXP.750.CXCR5hiICOShi_U133A_3."                                  
+[109] "TN_U133A_1..TFH_E.MEXP.750.TN_U133A_1."                                                        
+[110] "TN_U133A_2..TFH_E.MEXP.750.TN_U133A_2."                                                        
+[111] "TN_U133A_3..TFH_E.MEXP.750.TN_U133A_3."                                                        
+[112] "Treg_1..TREGs_GSE4527.GSM101519."                                                              
+[113] "Treg_2..TREGs_GSE4527.GSM101521."                                                              
+> 
+> sms = gsub("..HG.U133A...", ".", colnames(rDat), fixed=TRUE)
+> sms = gsub("_U133A.", "", sms)
+> sms = gsub("_U133A_", "_", sms)
+> sms = gsub(".HG.U133A.", ".", sms, fixed=TRUE)
+> sms = gsub("^X\\.", "", sms, perl=TRUE)
+> sms = gsub("..", ".", sms, fixed=TRUE)
+> sms = gsub(".$", "", sms, perl=TRUE)
+> sms = gsub("^CXCR5hiICOShi\\d\\.", "", sms, perl=TRUE)
+> sms = gsub(".biological.", ".", sms, fixed=TRUE)
+> 
+> sms
+  [1] "A_LW_mastcellctrl.Chtanova_immune.A_LW_mastcellctr"                  
+  [2] "A_LW_mastcellIgE.Chtanova_immune.A_LW_mastcellIg"                    
+  [3] "A_LW_neutrophil.Chtanova_immune.A_LW_neutrophi"                      
+  [4] "A_MF_2hrEosinophils.Chtanova_immune.A_MF_2hrEosinophil"              
+  [5] "A_MF_ControlEosinophil.Chtanova_immune.A_MF_ControlEosinophil"       
+  [6] "A_MF_ControlMASTCELL.Chtanova_immune.A_MF_ControlMASTCEL"            
+  [7] "A_MF_IgEMASTCELL.Chtanova_immune.A_MF_IgEMASTCEL"                    
+  [8] "A_MF_neutrophils.Chtanova_immune.A_MF_neutrophil"                    
+  [9] "A_TS_MSNeutroLPS.Chtanova_immune.A_TS_MSNeutroLP"                    
+ [10] "A_TS_RN_gdTcells.Chtanova_immune.A_TS_RN_gdTcell"                    
+ [11] "A_TS_RN_gdTcellsREP_A.Chtanova_immune.A_TS_RN_gdTcellsREP_A"         
+ [12] "CD8Tcell.N0.1.IRIS_GSE22886.GSM565269"                               
+ [13] "CD8Tcell.N0.2.IRIS_GSE22886.GSM565270"                               
+ [14] "CD8Tcell.N0.3.IRIS_GSE22886.GSM565271"                               
+ [15] "CD8Tcell.N0.4.IRIS_GSE22886.GSM565272"                               
+ [16] "MemoryTcell.RO.unactivated.1.IRIS_GSE22886.GSM565287"                
+ [17] "MemoryTcell.RO.unactivated.2.IRIS_GSE22886.GSM565288"                
+ [18] "MemoryTcell.RO.unactivated.3.IRIS_GSE22886.GSM565289"                
+ [19] "MemoryTcell.RO.activated.1.IRIS_GSE22886.GSM565290"                  
+ [20] "MemoryTcell.RO.activated.2.IRIS_GSE22886.GSM565291"                  
+ [21] "MemoryTcell.RO.activated.3.IRIS_GSE22886.GSM565292"                  
+ [22] "NKcell.control.1.IRIS_GSE22886.GSM565293"                            
+ [23] "NKcell.control.2.IRIS_GSE22886.GSM565294"                            
+ [24] "NKcell.control.3.IRIS_GSE22886.GSM565295"                            
+ [25] "NKcell.control.4.IRIS_GSE22886.GSM565296"                            
+ [26] "NKcell.IL2stimulated.1.IRIS_GSE22886.GSM565297"                      
+ [27] "NKcell.IL2stimulated.2.IRIS_GSE22886.GSM565298"                      
+ [28] "NKcell.IL2stimulated.3.IRIS_GSE22886.GSM565299"                      
+ [29] "NKcell.IL2stimulated.4.IRIS_GSE22886.GSM565300"                      
+ [30] "NKcell.IL2stimulated.5.IRIS_GSE22886.GSM565301"                      
+ [31] "NKcell.IL15stimulated.1.IRIS_GSE22886.GSM565302"                     
+ [32] "NKcell.IL15stimulated.2.IRIS_GSE22886.GSM565303"                     
+ [33] "NKcell.IL15stimulated.3.IRIS_GSE22886.GSM565304"                     
+ [34] "NKcell.IL15stimulated.4.IRIS_GSE22886.GSM565305"                     
+ [35] "NKcell.IL15stimulated.5.IRIS_GSE22886.GSM565306"                     
+ [36] "NKcell.IL15stimulated.6.IRIS_GSE22886.GSM565307"                     
+ [37] "Bcell.naive.1.IRIS_GSE22886.GSM565308"                               
+ [38] "Bcell.naive.2.IRIS_GSE22886.GSM565309"                               
+ [39] "Bcell.naive.3.IRIS_GSE22886.GSM565310"                               
+ [40] "Bcell.naive.4.IRIS_GSE22886.GSM565311"                               
+ [41] "Bcell.naive.5.IRIS_GSE22886.GSM565312"                               
+ [42] "Bcell.naive.6.IRIS_GSE22886.GSM565313"                               
+ [43] "Bcell.naive.7.IRIS_GSE22886.GSM565314"                               
+ [44] "Bcell.Memory_IgG_IgA.1.IRIS_GSE22886.GSM565315"                      
+ [45] "Bcell.Memory_IgG_IgA.2.IRIS_GSE22886.GSM565316"                      
+ [46] "Bcell.Memory_IgG_IgA.3.IRIS_GSE22886.GSM565317"                      
+ [47] "Bcell.Memory_IgG_IgA.4.IRIS_GSE22886.GSM565318"                      
+ [48] "Bcell.Memory_IgM.1.IRIS_GSE22886.GSM565319"                          
+ [49] "Bcell.Memory_IgM.2.IRIS_GSE22886.GSM565320"                          
+ [50] "Bcell.Memory_IgM.3.IRIS_GSE22886.GSM565321"                          
+ [51] "Bcell.Memory_IgM.4.IRIS_GSE22886.GSM565322"                          
+ [52] "PlasmaCell.FromPBMC.1.IRIS_GSE22886.GSM565323"                       
+ [53] "PlasmaCell.FromPBMC.2.IRIS_GSE22886.GSM565324"                       
+ [54] "PlasmaCell.FromPBMC.3.IRIS_GSE22886.GSM565325"                       
+ [55] "PlasmaCell.FromBoneMarrow.1.IRIS_GSE22886.GSM565326"                 
+ [56] "PlasmaCell.FromBoneMarrow.2.IRIS_GSE22886.GSM565327"                 
+ [57] "PlasmaCell.FromBoneMarrow.3.IRIS_GSE22886.GSM565328"                 
+ [58] "PlasmaCell.FromBoneMarrow.4.IRIS_GSE22886.GSM565329"                 
+ [59] "Monocyte.Day0.1.IRIS_GSE22886.GSM565330"                             
+ [60] "Monocyte.Day0.2.IRIS_GSE22886.GSM565331"                             
+ [61] "Monocyte.Day0.3.IRIS_GSE22886.GSM565332"                             
+ [62] "Monocyte.Day0.4.IRIS_GSE22886.GSM565333"                             
+ [63] "Monocyte.Day0.5.IRIS_GSE22886.GSM565334"                             
+ [64] "Monocyte.Day0.6.IRIS_GSE22886.GSM565335"                             
+ [65] "Monocyte.Day0.7.IRIS_GSE22886.GSM565336"                             
+ [66] "Monocyte.Day0.8.IRIS_GSE22886.GSM565337"                             
+ [67] "Monocyte.Day0.9.IRIS_GSE22886.GSM565338"                             
+ [68] "Monocyte.Day0.10.IRIS_GSE22886.GSM565339"                            
+ [69] "Monocyte.Day0.11.IRIS_GSE22886.GSM565340"                            
+ [70] "Monocyte.Day0.12.IRIS_GSE22886.GSM565341"                            
+ [71] "Monocyte.Day7.1.IRIS_GSE22886.GSM565354"                             
+ [72] "Monocyte.Day7.2.IRIS_GSE22886.GSM565355"                             
+ [73] "Monocyte.Day7.3.IRIS_GSE22886.GSM565356"                             
+ [74] "Monocyte.Day7.4.IRIS_GSE22886.GSM565357"                             
+ [75] "Monocyte.Day7.5.IRIS_GSE22886.GSM565358"                             
+ [76] "Monocyte.Day7.6.IRIS_GSE22886.GSM565359"                             
+ [77] "Monocyte.Day7.7.IRIS_GSE22886.GSM565360"                             
+ [78] "Monocyte.Day7.8.IRIS_GSE22886.GSM565361"                             
+ [79] "Monocyte.Day7.9.IRIS_GSE22886.GSM565362"                             
+ [80] "Monocyte.Day7.10.IRIS_GSE22886.GSM565363"                            
+ [81] "Monocyte.Day7.11.IRIS_GSE22886.GSM565364"                            
+ [82] "Monocyte.Day7.12.IRIS_GSE22886.GSM565365"                            
+ [83] "DendriticCell.Control.1.IRIS_GSE22886.GSM565366"                     
+ [84] "DendriticCell.Control.2.IRIS_GSE22886.GSM565367"                     
+ [85] "DendriticCell.Control.3.IRIS_GSE22886.GSM565368"                     
+ [86] "DendriticCell.Control.4.IRIS_GSE22886.GSM565369"                     
+ [87] "DendriticCell.Control.5.IRIS_GSE22886.GSM565370"                     
+ [88] "DendriticCell.Control.6.IRIS_GSE22886.GSM565371"                     
+ [89] "DendriticCell.LPSstimulated.1.IRIS_GSE22886.GSM565372"               
+ [90] "DendriticCell.LPSstimulated.2.IRIS_GSE22886.GSM565373"               
+ [91] "DendriticCell.LPSstimulated.3.IRIS_GSE22886.GSM565374"               
+ [92] "DendriticCell.LPSstimulated.4.IRIS_GSE22886.GSM565375"               
+ [93] "DendriticCell.LPSstimulated.5.IRIS_GSE22886.GSM565376"               
+ [94] "DendriticCell.LPSstimulated.6.IRIS_GSE22886.GSM565377"               
+ [95] "Neutrophil.Resting.1.IRIS_GSE22886.GSM565378"                        
+ [96] "Neutrophil.Resting.2.IRIS_GSE22886.GSM565379"                        
+ [97] "Neutrophil.Resting.3.IRIS_GSE22886.GSM565380"                        
+ [98] "Neutrophil.Resting.4.IRIS_GSE22886.GSM565381"                        
+ [99] "Neutrophil.Resting.5.IRIS_GSE22886.GSM565382"                        
+[100] "classical.or.M1.activated.macrophages.rep1.M1_M2_GSE7138.GSM115055"  
+[101] "classical.or.M1.activated.macrophages.rep2.M1_M2_GSE7138.GSM115056"  
+[102] "classical.or.M1.activated.macrophages.rep3.M1_M2_GSE7138.GSM115057"  
+[103] "Alternative.or.M2.activated.macrophages.rep1.M1_M2_GSE7138.GSM115058"
+[104] "Alternative.or.M2.activated.macrophages.rep2.M1_M2_GSE7138.GSM115059"
+[105] "Alternative.or.M2.activated.macrophages.rep3.M1_M2_GSE7138.GSM115060"
+[106] "TFH_E.MEXP.750.CXCR5hiICOShi1"                                       
+[107] "TFH_E.MEXP.750.CXCR5hiICOShi2"                                       
+[108] "TFH_E.MEXP.750.CXCR5hiICOShi3"                                       
+[109] "TN1.TFH_E.MEXP.750.TN1"                                              
+[110] "TN2.TFH_E.MEXP.750.TN2"                                              
+[111] "TN3.TFH_E.MEXP.750.TN3"                                              
+[112] "Treg_1.TREGs_GSE4527.GSM101519"                                      
+[113] "Treg_2.TREGs_GSE4527.GSM101521"                                      
+> 
+> colnames(rDat) = sms
+> 
+> # -----------------------------------------------------------------
+> # get cell type information
+> # -----------------------------------------------------------------
+> 
+> info = data.frame(sampleID=colnames(rDat), cellType=rep(NA, ncol(rDat)))
+> dim(info)
+[1] 113   2
+> info[1:2,]
+                                            sampleID cellType
+1 A_LW_mastcellctrl.Chtanova_immune.A_LW_mastcellctr       NA
+2   A_LW_mastcellIgE.Chtanova_immune.A_LW_mastcellIg       NA
+> 
+> for(i in 1:nrow(info)){
++   wwi = which(cDat[,i] == 1)
++   if(length(wwi) != 1){
++     stop("number of cell type is not 1\n")
++   }
++   info$cellType[i] = rownames(cDat)[wwi]
++ }
+> 
+> info
+                                                                sampleID
+1                     A_LW_mastcellctrl.Chtanova_immune.A_LW_mastcellctr
+2                       A_LW_mastcellIgE.Chtanova_immune.A_LW_mastcellIg
+3                         A_LW_neutrophil.Chtanova_immune.A_LW_neutrophi
+4                 A_MF_2hrEosinophils.Chtanova_immune.A_MF_2hrEosinophil
+5          A_MF_ControlEosinophil.Chtanova_immune.A_MF_ControlEosinophil
+6               A_MF_ControlMASTCELL.Chtanova_immune.A_MF_ControlMASTCEL
+7                       A_MF_IgEMASTCELL.Chtanova_immune.A_MF_IgEMASTCEL
+8                       A_MF_neutrophils.Chtanova_immune.A_MF_neutrophil
+9                       A_TS_MSNeutroLPS.Chtanova_immune.A_TS_MSNeutroLP
+10                      A_TS_RN_gdTcells.Chtanova_immune.A_TS_RN_gdTcell
+11           A_TS_RN_gdTcellsREP_A.Chtanova_immune.A_TS_RN_gdTcellsREP_A
+12                                 CD8Tcell.N0.1.IRIS_GSE22886.GSM565269
+13                                 CD8Tcell.N0.2.IRIS_GSE22886.GSM565270
+14                                 CD8Tcell.N0.3.IRIS_GSE22886.GSM565271
+15                                 CD8Tcell.N0.4.IRIS_GSE22886.GSM565272
+16                  MemoryTcell.RO.unactivated.1.IRIS_GSE22886.GSM565287
+17                  MemoryTcell.RO.unactivated.2.IRIS_GSE22886.GSM565288
+18                  MemoryTcell.RO.unactivated.3.IRIS_GSE22886.GSM565289
+19                    MemoryTcell.RO.activated.1.IRIS_GSE22886.GSM565290
+20                    MemoryTcell.RO.activated.2.IRIS_GSE22886.GSM565291
+21                    MemoryTcell.RO.activated.3.IRIS_GSE22886.GSM565292
+22                              NKcell.control.1.IRIS_GSE22886.GSM565293
+23                              NKcell.control.2.IRIS_GSE22886.GSM565294
+24                              NKcell.control.3.IRIS_GSE22886.GSM565295
+25                              NKcell.control.4.IRIS_GSE22886.GSM565296
+26                        NKcell.IL2stimulated.1.IRIS_GSE22886.GSM565297
+27                        NKcell.IL2stimulated.2.IRIS_GSE22886.GSM565298
+28                        NKcell.IL2stimulated.3.IRIS_GSE22886.GSM565299
+29                        NKcell.IL2stimulated.4.IRIS_GSE22886.GSM565300
+30                        NKcell.IL2stimulated.5.IRIS_GSE22886.GSM565301
+31                       NKcell.IL15stimulated.1.IRIS_GSE22886.GSM565302
+32                       NKcell.IL15stimulated.2.IRIS_GSE22886.GSM565303
+33                       NKcell.IL15stimulated.3.IRIS_GSE22886.GSM565304
+34                       NKcell.IL15stimulated.4.IRIS_GSE22886.GSM565305
+35                       NKcell.IL15stimulated.5.IRIS_GSE22886.GSM565306
+36                       NKcell.IL15stimulated.6.IRIS_GSE22886.GSM565307
+37                                 Bcell.naive.1.IRIS_GSE22886.GSM565308
+38                                 Bcell.naive.2.IRIS_GSE22886.GSM565309
+39                                 Bcell.naive.3.IRIS_GSE22886.GSM565310
+40                                 Bcell.naive.4.IRIS_GSE22886.GSM565311
+41                                 Bcell.naive.5.IRIS_GSE22886.GSM565312
+42                                 Bcell.naive.6.IRIS_GSE22886.GSM565313
+43                                 Bcell.naive.7.IRIS_GSE22886.GSM565314
+44                        Bcell.Memory_IgG_IgA.1.IRIS_GSE22886.GSM565315
+45                        Bcell.Memory_IgG_IgA.2.IRIS_GSE22886.GSM565316
+46                        Bcell.Memory_IgG_IgA.3.IRIS_GSE22886.GSM565317
+47                        Bcell.Memory_IgG_IgA.4.IRIS_GSE22886.GSM565318
+48                            Bcell.Memory_IgM.1.IRIS_GSE22886.GSM565319
+49                            Bcell.Memory_IgM.2.IRIS_GSE22886.GSM565320
+50                            Bcell.Memory_IgM.3.IRIS_GSE22886.GSM565321
+51                            Bcell.Memory_IgM.4.IRIS_GSE22886.GSM565322
+52                         PlasmaCell.FromPBMC.1.IRIS_GSE22886.GSM565323
+53                         PlasmaCell.FromPBMC.2.IRIS_GSE22886.GSM565324
+54                         PlasmaCell.FromPBMC.3.IRIS_GSE22886.GSM565325
+55                   PlasmaCell.FromBoneMarrow.1.IRIS_GSE22886.GSM565326
+56                   PlasmaCell.FromBoneMarrow.2.IRIS_GSE22886.GSM565327
+57                   PlasmaCell.FromBoneMarrow.3.IRIS_GSE22886.GSM565328
+58                   PlasmaCell.FromBoneMarrow.4.IRIS_GSE22886.GSM565329
+59                               Monocyte.Day0.1.IRIS_GSE22886.GSM565330
+60                               Monocyte.Day0.2.IRIS_GSE22886.GSM565331
+61                               Monocyte.Day0.3.IRIS_GSE22886.GSM565332
+62                               Monocyte.Day0.4.IRIS_GSE22886.GSM565333
+63                               Monocyte.Day0.5.IRIS_GSE22886.GSM565334
+64                               Monocyte.Day0.6.IRIS_GSE22886.GSM565335
+65                               Monocyte.Day0.7.IRIS_GSE22886.GSM565336
+66                               Monocyte.Day0.8.IRIS_GSE22886.GSM565337
+67                               Monocyte.Day0.9.IRIS_GSE22886.GSM565338
+68                              Monocyte.Day0.10.IRIS_GSE22886.GSM565339
+69                              Monocyte.Day0.11.IRIS_GSE22886.GSM565340
+70                              Monocyte.Day0.12.IRIS_GSE22886.GSM565341
+71                               Monocyte.Day7.1.IRIS_GSE22886.GSM565354
+72                               Monocyte.Day7.2.IRIS_GSE22886.GSM565355
+73                               Monocyte.Day7.3.IRIS_GSE22886.GSM565356
+74                               Monocyte.Day7.4.IRIS_GSE22886.GSM565357
+75                               Monocyte.Day7.5.IRIS_GSE22886.GSM565358
+76                               Monocyte.Day7.6.IRIS_GSE22886.GSM565359
+77                               Monocyte.Day7.7.IRIS_GSE22886.GSM565360
+78                               Monocyte.Day7.8.IRIS_GSE22886.GSM565361
+79                               Monocyte.Day7.9.IRIS_GSE22886.GSM565362
+80                              Monocyte.Day7.10.IRIS_GSE22886.GSM565363
+81                              Monocyte.Day7.11.IRIS_GSE22886.GSM565364
+82                              Monocyte.Day7.12.IRIS_GSE22886.GSM565365
+83                       DendriticCell.Control.1.IRIS_GSE22886.GSM565366
+84                       DendriticCell.Control.2.IRIS_GSE22886.GSM565367
+85                       DendriticCell.Control.3.IRIS_GSE22886.GSM565368
+86                       DendriticCell.Control.4.IRIS_GSE22886.GSM565369
+87                       DendriticCell.Control.5.IRIS_GSE22886.GSM565370
+88                       DendriticCell.Control.6.IRIS_GSE22886.GSM565371
+89                 DendriticCell.LPSstimulated.1.IRIS_GSE22886.GSM565372
+90                 DendriticCell.LPSstimulated.2.IRIS_GSE22886.GSM565373
+91                 DendriticCell.LPSstimulated.3.IRIS_GSE22886.GSM565374
+92                 DendriticCell.LPSstimulated.4.IRIS_GSE22886.GSM565375
+93                 DendriticCell.LPSstimulated.5.IRIS_GSE22886.GSM565376
+94                 DendriticCell.LPSstimulated.6.IRIS_GSE22886.GSM565377
+95                          Neutrophil.Resting.1.IRIS_GSE22886.GSM565378
+96                          Neutrophil.Resting.2.IRIS_GSE22886.GSM565379
+97                          Neutrophil.Resting.3.IRIS_GSE22886.GSM565380
+98                          Neutrophil.Resting.4.IRIS_GSE22886.GSM565381
+99                          Neutrophil.Resting.5.IRIS_GSE22886.GSM565382
+100   classical.or.M1.activated.macrophages.rep1.M1_M2_GSE7138.GSM115055
+101   classical.or.M1.activated.macrophages.rep2.M1_M2_GSE7138.GSM115056
+102   classical.or.M1.activated.macrophages.rep3.M1_M2_GSE7138.GSM115057
+103 Alternative.or.M2.activated.macrophages.rep1.M1_M2_GSE7138.GSM115058
+104 Alternative.or.M2.activated.macrophages.rep2.M1_M2_GSE7138.GSM115059
+105 Alternative.or.M2.activated.macrophages.rep3.M1_M2_GSE7138.GSM115060
+106                                        TFH_E.MEXP.750.CXCR5hiICOShi1
+107                                        TFH_E.MEXP.750.CXCR5hiICOShi2
+108                                        TFH_E.MEXP.750.CXCR5hiICOShi3
+109                                               TN1.TFH_E.MEXP.750.TN1
+110                                               TN2.TFH_E.MEXP.750.TN2
+111                                               TN3.TFH_E.MEXP.750.TN3
+112                                       Treg_1.TREGs_GSE4527.GSM101519
+113                                       Treg_2.TREGs_GSE4527.GSM101521
+                        cellType
+1             Mast cells resting
+2           Mast cells activated
+3                    Neutrophils
+4                    Eosinophils
+5                    Eosinophils
+6             Mast cells resting
+7           Mast cells activated
+8                    Neutrophils
+9                    Neutrophils
+10           T cells gamma delta
+11           T cells gamma delta
+12                   T cells CD8
+13                   T cells CD8
+14                   T cells CD8
+15                   T cells CD8
+16    T cells CD4 memory resting
+17    T cells CD4 memory resting
+18    T cells CD4 memory resting
+19  T cells CD4 memory activated
+20  T cells CD4 memory activated
+21  T cells CD4 memory activated
+22              NK cells resting
+23              NK cells resting
+24              NK cells resting
+25              NK cells resting
+26            NK cells activated
+27            NK cells activated
+28            NK cells activated
+29            NK cells activated
+30            NK cells activated
+31            NK cells activated
+32            NK cells activated
+33            NK cells activated
+34            NK cells activated
+35            NK cells activated
+36            NK cells activated
+37                 B cells naive
+38                 B cells naive
+39                 B cells naive
+40                 B cells naive
+41                 B cells naive
+42                 B cells naive
+43                 B cells naive
+44                B cells memory
+45                B cells memory
+46                B cells memory
+47                B cells memory
+48                B cells memory
+49                B cells memory
+50                B cells memory
+51                B cells memory
+52                  Plasma cells
+53                  Plasma cells
+54                  Plasma cells
+55                  Plasma cells
+56                  Plasma cells
+57                  Plasma cells
+58                  Plasma cells
+59                     Monocytes
+60                     Monocytes
+61                     Monocytes
+62                     Monocytes
+63                     Monocytes
+64                     Monocytes
+65                     Monocytes
+66                     Monocytes
+67                     Monocytes
+68                     Monocytes
+69                     Monocytes
+70                     Monocytes
+71                Macrophages M0
+72                Macrophages M0
+73                Macrophages M0
+74                Macrophages M0
+75                Macrophages M0
+76                Macrophages M0
+77                Macrophages M0
+78                Macrophages M0
+79                Macrophages M0
+80                Macrophages M0
+81                Macrophages M0
+82                Macrophages M0
+83       Dendritic cells resting
+84       Dendritic cells resting
+85       Dendritic cells resting
+86       Dendritic cells resting
+87       Dendritic cells resting
+88       Dendritic cells resting
+89     Dendritic cells activated
+90     Dendritic cells activated
+91     Dendritic cells activated
+92     Dendritic cells activated
+93     Dendritic cells activated
+94     Dendritic cells activated
+95                   Neutrophils
+96                   Neutrophils
+97                   Neutrophils
+98                   Neutrophils
+99                   Neutrophils
+100               Macrophages M1
+101               Macrophages M1
+102               Macrophages M1
+103               Macrophages M2
+104               Macrophages M2
+105               Macrophages M2
+106    T cells follicular helper
+107    T cells follicular helper
+108    T cells follicular helper
+109            T cells CD4 naive
+110            T cells CD4 naive
+111            T cells CD4 naive
+112   T cells regulatory (Tregs)
+113   T cells regulatory (Tregs)
+> table(info$cellType)
+
+              B cells memory                B cells naive 
+                           8                            7 
+   Dendritic cells activated      Dendritic cells resting 
+                           6                            6 
+                 Eosinophils               Macrophages M0 
+                           2                           12 
+              Macrophages M1               Macrophages M2 
+                           3                            3 
+        Mast cells activated           Mast cells resting 
+                           2                            2 
+                   Monocytes                  Neutrophils 
+                          12                            8 
+          NK cells activated             NK cells resting 
+                          11                            4 
+                Plasma cells T cells CD4 memory activated 
+                           7                            3 
+  T cells CD4 memory resting            T cells CD4 naive 
+                           3                            3 
+                 T cells CD8    T cells follicular helper 
+                           4                            3 
+         T cells gamma delta   T cells regulatory (Tregs) 
+                           2                            2 
+> 
+> ct = info$cellType
+> ct[which(info$cellType=="Mast cells resting")]   = "Mast resting"
+> ct[which(info$cellType=="Mast cells activated")] = "Mast activated"
+> ct[which(info$cellType=="T cells gamma delta")]  = "T gd"
+> ct[which(info$cellType=="T cells CD8")]  = "CD8+ T"
+> ct[which(info$cellType=="T cells CD4 memory resting")] = "CD4+ T memory resting"
+> ct[which(info$cellType=="T cells CD4 memory activated")]  = "CD4+ T memory activated"
+> ct[which(info$cellType=="NK cells resting")]    = "NK resting"
+> ct[which(info$cellType=="NK cells activated")]  = "NK activated"
+> ct[which(info$cellType=="B cells naive")]   = "B naive"
+> ct[which(info$cellType=="B cells memory")]  = "B memory"
+> ct[which(info$cellType=="Plasma cells")]    = "Plasma"
+> ct[which(info$cellType=="Dendritic cells resting")]   = "Dendritic resting"
+> ct[which(info$cellType=="Dendritic cells activated")] = "Dendritic activated"
+> ct[which(info$cellType=="T cells follicular helper")] = "Tfh"
+> ct[which(info$cellType=="T cells CD4 naive")] = "CD4+ T"
+> ct[which(info$cellType=="T cells regulatory (Tregs)")] = "Tregs"
+> 
+> info$label = ct
+> 
+> uct = unique(ct)
+> 
+> panT = c("CD4+ T", "CD8+ T", "CD4+ T memory activated", "CD4+ T memory resting")
+> panT = c(panT, "T gd", "Tfh", "Tregs")
+> panB = c("B memory", "B naive", "Plasma")
+> panNK  = c("NK resting", "NK activated")
+> panMono  = c("Monocytes", "Macrophages M0", "Macrophages M1", "Macrophages M2")
+> panMono  = c(panMono, "Dendritic resting",  "Dendritic activated")
+> panGranu = c("Mast resting", "Mast activated", "Neutrophils", "Eosinophils")
+> 
+> setdiff(uct, c(panT, panB, panNK, panMono, panGranu))
+character(0)
+> 
+> newCt = c(panGranu, panMono, panNK, panB, panT)
+> newCt
+ [1] "Mast resting"            "Mast activated"         
+ [3] "Neutrophils"             "Eosinophils"            
+ [5] "Monocytes"               "Macrophages M0"         
+ [7] "Macrophages M1"          "Macrophages M2"         
+ [9] "Dendritic resting"       "Dendritic activated"    
+[11] "NK resting"              "NK activated"           
+[13] "B memory"                "B naive"                
+[15] "Plasma"                  "CD4+ T"                 
+[17] "CD8+ T"                  "CD4+ T memory activated"
+[19] "CD4+ T memory resting"   "T gd"                   
+[21] "Tfh"                     "Tregs"                  
+> 
+> # -----------------------------------------------------------------
+> # order the data based on new order of cell types, to faciliate
+> # some plots to separate cell types
+> # -----------------------------------------------------------------
+> 
+> newRDat = NULL
+> 
+> for(ct1 in newCt){
++   ww1 = which(info$label == ct1)
++   newRDat = cbind(newRDat, rDat[,ww1])
++ }
+> 
+> dim(newRDat)
+[1] 11866   113
+> newRDat[1:2,1:5]
+     A_LW_mastcellctrl.Chtanova_immune.A_LW_mastcellctr
+A1CF                                           131.3877
+A2M                                            835.0097
+     A_MF_ControlMASTCELL.Chtanova_immune.A_MF_ControlMASTCEL
+A1CF                                                 158.6738
+A2M                                                  828.3599
+     A_LW_mastcellIgE.Chtanova_immune.A_LW_mastcellIg
+A1CF                                         103.7296
+A2M                                         1911.7137
+     A_MF_IgEMASTCELL.Chtanova_immune.A_MF_IgEMASTCEL
+A1CF                                         144.4108
+A2M                                          502.7396
+     A_LW_neutrophil.Chtanova_immune.A_LW_neutrophi
+A1CF                                      157.71611
+A2M                                        28.01728
+> 
+> newInfo = info[match(colnames(newRDat), info$sampleID),]
+> 
+> dim(newInfo)
+[1] 113   3
+> newInfo[1:2,]
+                                                  sampleID           cellType
+1       A_LW_mastcellctrl.Chtanova_immune.A_LW_mastcellctr Mast cells resting
+6 A_MF_ControlMASTCELL.Chtanova_immune.A_MF_ControlMASTCEL Mast cells resting
+         label
+1 Mast resting
+6 Mast resting
+> 
+> info = newInfo
+> rDat = newRDat
+> 
+> # ------------------------------------------------------------
+> # add study information, based table S2 of CIBERSORT paper
+> # ------------------------------------------------------------
+> 
+> table(info$label)
+
+               B memory                 B naive                  CD4+ T 
+                      8                       7                       3 
+CD4+ T memory activated   CD4+ T memory resting                  CD8+ T 
+                      3                       3                       4 
+    Dendritic activated       Dendritic resting             Eosinophils 
+                      6                       6                       2 
+         Macrophages M0          Macrophages M1          Macrophages M2 
+                     12                       3                       3 
+         Mast activated            Mast resting               Monocytes 
+                      2                       2                      12 
+            Neutrophils            NK activated              NK resting 
+                      8                      11                       4 
+                 Plasma                    T gd                     Tfh 
+                      7                       2                       3 
+                  Tregs 
+                      2 
+> 
+> studies = rep("", nrow(info))
+> 
+> wAbbas    = grep("GSE22886", info$sampleID, fixed=TRUE)
+> studies[wAbbas] = "Abbas"
+> 
+> wChtanova = grep("^A_", info$sampleID, perl=TRUE)
+> studies[wChtanova] = "Chtanova"
+> 
+> wCho      = grep("GSE7138", info$sampleID, fixed=TRUE)
+> studies[wCho] = "Cho"
+> 
+> wOcklenburg   = grep("GSE4527", info$sampleID, fixed=TRUE)
+> studies[wOcklenburg] = "Ocklenburg"
+> 
+> info[which(studies==""),]
+                         sampleID                  cellType  label
+109        TN1.TFH_E.MEXP.750.TN1         T cells CD4 naive CD4+ T
+110        TN2.TFH_E.MEXP.750.TN2         T cells CD4 naive CD4+ T
+111        TN3.TFH_E.MEXP.750.TN3         T cells CD4 naive CD4+ T
+106 TFH_E.MEXP.750.CXCR5hiICOShi1 T cells follicular helper    Tfh
+107 TFH_E.MEXP.750.CXCR5hiICOShi2 T cells follicular helper    Tfh
+108 TFH_E.MEXP.750.CXCR5hiICOShi3 T cells follicular helper    Tfh
+> studies[which(studies=="")] = "Rasheed"
+> 
+> table(studies)
+studies
+     Abbas        Cho   Chtanova Ocklenburg    Rasheed 
+        88          6         11          2          6 
+> 
+> info$study = studies
+> table(info$study, info$label)
+            
+             B memory B naive CD4+ T CD4+ T memory activated
+  Abbas             8       7      0                       3
+  Cho               0       0      0                       0
+  Chtanova          0       0      0                       0
+  Ocklenburg        0       0      0                       0
+  Rasheed           0       0      3                       0
+            
+             CD4+ T memory resting CD8+ T Dendritic activated Dendritic resting
+  Abbas                          3      4                   6                 6
+  Cho                            0      0                   0                 0
+  Chtanova                       0      0                   0                 0
+  Ocklenburg                     0      0                   0                 0
+  Rasheed                        0      0                   0                 0
+            
+             Eosinophils Macrophages M0 Macrophages M1 Macrophages M2
+  Abbas                0             12              0              0
+  Cho                  0              0              3              3
+  Chtanova             2              0              0              0
+  Ocklenburg           0              0              0              0
+  Rasheed              0              0              0              0
+            
+             Mast activated Mast resting Monocytes Neutrophils NK activated
+  Abbas                   0            0        12           5           11
+  Cho                     0            0         0           0            0
+  Chtanova                2            2         0           3            0
+  Ocklenburg              0            0         0           0            0
+  Rasheed                 0            0         0           0            0
+            
+             NK resting Plasma T gd Tfh Tregs
+  Abbas               4      7    0   0     0
+  Cho                 0      0    0   0     0
+  Chtanova            0      0    2   0     0
+  Ocklenburg          0      0    0   0     2
+  Rasheed             0      0    0   3     0
+> 
+> # ------------------------------------------------------------
+> # check distribution for genes selected for LM22
+> # ------------------------------------------------------------
+> 
+> lDat = read.table("../data/LM22.txt", as.is=TRUE, sep="\t",
++                   header=TRUE, quote="")
+> dim(lDat)
+[1] 547  23
+> lDat[1:2,1:5]
+  Gene.symbol B.cells.naive B.cells.memory Plasma.cells T.cells.CD8
+1       ABCB4     555.71345       10.74423     7.225819     4.31128
+2       ABCB9      15.60354       22.09479   653.392328    24.22372
+> 
+> rownames(lDat) = lDat$Gene.symbol
+> lDat = data.matrix(lDat[,-1])
+> dim(lDat)
+[1] 547  22
+> lDat[1:2,1:5]
+      B.cells.naive B.cells.memory Plasma.cells T.cells.CD8 T.cells.CD4.naive
+ABCB4     555.71345       10.74423     7.225819     4.31128           4.60586
+ABCB9      15.60354       22.09479   653.392328    24.22372          35.67151
+> 
+> names(lDat)
+NULL
+> lDatLog = log10(lDat)
+> 
+> uct  = colnames(lDat)
+> cols = rainbow(length(uct), start=0.2, end=1)
+> 
+> cMean = apply(lDat, 2, mean)
+> cSD   = apply(lDat, 2, sd)
+> 
+> pdf("../figures/LM22_547_genes_summary.pdf", width=8, height=4)
+> par(mfrow=c(1,2), mar=c(5,4,1,1), bty="n", cex=0.9)
+> plot(cMean, cSD, type="n", bty="n", xlab="mean", ylab="sd", bty="n")
+> 
+> for(i in 1:length(uct)){
++   ct1 = uct[i]
++   points(cMean[i], cSD[i], pch=i, col=cols[i])
++ }
+> 
+> legend("topleft", legend=uct[1:11], pch=1:11, col=cols[1:11], 
++        bty="n", cex=0.6)
+> legend("bottomright", legend=uct[12:22], pch=12:22, col=cols[12:22], 
++        bty="n", cex=0.6)
+> 
+> plot(density(lDatLog[,1]), col=cols[1], lwd=2, main="", ylim=c(0,0.6), 
++      xlab="log10(expression)")
+> for(i in 2:22){lines(density(lDatLog[,i]),lwd=2,col=cols[i])}
+> 
+> dev.off()
+null device 
+          1 
+> 
+> # ------------------------------------------------------------
+> # check distribution
+> # ------------------------------------------------------------
+> 
+> rDatLog = log10(rDat)
+> 
+> uct  = unique(info$label)
+> 
+> pdf("../figures/LM22_ref_summary.pdf", width=8, height=4)
+> 
+> par(mfrow=c(1,2), mar=c(5,4,1,1), bty="n")
+> cMean = apply(rDat, 2, mean)
+> cSD   = apply(rDat, 2, sd)
+> 
+> plot(cMean, cSD, type="n", bty="n", xlab="mean", ylab="sd")
+> 
+> cols = rainbow(length(uct), start=0.2, end=1)
+> 
+> for(i in 1:length(uct)){
++   ct1 = uct[i]
++   ww1 = which(info$label==ct1)
++   points(cMean[ww1], cSD[ww1], pch=i, col=cols[i])
++ }
+> 
+> legend("topleft", legend=uct[1:15], pch=1:15, col=cols[1:15], 
++        bty="n", cex=0.6)
+> legend("bottomright", legend=uct[16:22], pch=16:22, col=cols[16:22], 
++        bty="n", cex=0.6)
+> 
+> summary(cMean)
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+  625.9   662.0   681.7   692.2   701.6   856.8 
+> summary(cSD)
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+   1300    1633    1783    1995    2218    4512 
+> 
+> plot(density(rDatLog[,1]),col=cols[1],lwd=2, ylim=c(0,0.9), main="",
++      xlab="log10(gene expression")
+> for(i in 2:ncol(rDatLog)){lines(density(rDatLog[,i]),lwd=2,col=cols[i])}
+> 
+> dev.off()
+null device 
+          1 
+> 
+> # ------------------------------------------------------------
+> # select probes that are differentially expressed across 
+> # cell types
+> # ------------------------------------------------------------
+> 
+> labels    = uct
+> rDatLog   = log(rDat)
+> 
+> 
+> write.table(rDatLog, file = "../data/LM22-ref-sample_logged.txt",
++             append = FALSE, quote = FALSE, sep = "\t", row.names = T, 
++             col.names = T)
+> 
+> 
+> ct  = as.factor(info$label)
+> pvs = rep(NA, nrow(rDatLog))
+> 
+> for(i in 1:nrow(rDatLog)){
++   
++   if(i %% 5000 == 1){cat (i, date(), "\n")}
++   
++   yi = rDatLog[i,]
++   li = lm(yi ~ ct)
++   ai = anova(li)
++   
++   pvs[i] = ai$Pr[1]
++ }
+1 Tue Mar 26 12:14:31 2019 
+5001 Tue Mar 26 12:14:39 2019 
+10001 Tue Mar 26 12:14:47 2019 
+> 
+> table(pvs < 1e-10)
+
+FALSE  TRUE 
+ 3316  8550 
+> table(pvs < 1e-20)
+
+FALSE  TRUE 
+ 8193  3673 
+> 
+> rDatLog   = rDatLog[which(pvs < 1e-10),]
+> dim(rDatLog)
+[1] 8550  113
+> 
+> # ------------------------------------------------------------
+> # do PCAs, original data
+> # ------------------------------------------------------------
+> 
+> dat4Pr = rDatLog - rowMeans(rDatLog, na.rm=TRUE)
+> 
+> dat4Pr[is.na(dat4Pr)] = 0
+> covdat = t(dat4Pr) %*% dat4Pr / nrow(dat4Pr)
+> dim(covdat)
+[1] 113 113
+> prdat  = eigen(covdat)
+> 
+> prdat$values[1:20]/sum(prdat$values)
+ [1] 0.248352042 0.165657283 0.102649534 0.051370511 0.041245143 0.038918481
+ [7] 0.032500389 0.029604013 0.018587949 0.017191475 0.015585120 0.014558234
+[13] 0.011474217 0.009479364 0.008094602 0.007956940 0.006928073 0.006799836
+[19] 0.006278429 0.005435589
+> 
+> PC1 =  prdat$vectors[,1]
+> PC2 =  prdat$vectors[,2]
+> PC3 =  prdat$vectors[,3]
+> PC4 =  prdat$vectors[,4]
+> 
+> pdf("../figures/expression_PCs_logged_filtered_data.pdf", width=10.5, height=7)
+> par(mar=c(5,4,1,1), mfrow=c(2,3), bty="n", cex=0.9)
+> barplot(prdat$values[1:20], main="", xlab="Index", ylab="Eigen-value")
+> 
+> legend("topright", legend=labels[1:10], col=cols[1:10], bty="n",
++        pch=1:10)
+> 
+> plot(0:1, 0:1, xaxt="n", xlab="", yaxt="n", ylab="", type="n")
+> legend("topleft", legend=labels[11:22], col=cols[11:22], bty="n",
++        pch=11:22)
+> 
+> plot(PC1, PC2,  bty="n", cex=0.9, type="n")
+> for(j in 1:length(labels)){
++   wj = which(info$label == labels[j])
++   points(PC1[wj], PC2[wj], col=cols[j], pch=j, cex=0.9)
++ }
+> 
+> plot(PC1, PC3,  bty="n", cex=0.9, type="n")
+> for(j in 1:length(labels)){
++   wj = which(info$label == labels[j])
++   points(PC1[wj], PC3[wj], col=cols[j], pch=j, cex=0.9)
++ }
+> 
+> plot(PC1, PC4,  bty="n", cex=0.9, type="n")
+> for(j in 1:length(labels)){
++   wj = which(info$label == labels[j])
++   points(PC1[wj], PC4[wj], col=cols[j], pch=j, cex=0.9)
++ }
+> 
+> plot(PC2, PC3,  bty="n", cex=0.9, type="n")
+> for(j in 1:length(labels)){
++   wj = which(info$label == labels[j])
++   points(PC2[wj], PC3[wj], col=cols[j], pch=j, cex=0.9)
++ }
+> 
+> 
+> dev.off()
+null device 
+          1 
+> 
+> # ------------------------------------------------------------
+> # write out data
+> # ------------------------------------------------------------
+> 
+> write.table(rDatLog, file = "../data/LM22-ref-sample_logged_filtered.txt", 
++             append = FALSE, quote = FALSE, sep = "\t", row.names = T,
++             col.names = T)
+> 
+> write.table(info, file = "../data/LM22-ref-sample_info.txt", 
++             append = FALSE, quote = FALSE, sep = "\t", row.names = F, 
++             col.names = T)
+> 
+> sessionInfo()
+R version 3.4.1 (2017-06-30)
+Platform: x86_64-pc-linux-gnu (64-bit)
+Running under: Ubuntu 14.04.5 LTS
+
+Matrix products: default
+BLAS/LAPACK: /app/easybuild/software/OpenBLAS/0.2.18-GCC-5.4.0-2.26-LAPACK-3.6.1/lib/libopenblas_prescottp-r0.2.18.so
+
+locale:
+ [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C              
+ [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8    
+ [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8   
+ [7] LC_PAPER=en_US.UTF-8       LC_NAME=C                 
+ [9] LC_ADDRESS=C               LC_TELEPHONE=C            
+[11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C       
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+loaded via a namespace (and not attached):
+[1] compiler_3.4.1
+> 
+> quit(save="no")
+> proc.time()
+   user  system elapsed 
+ 28.238   0.184  28.949 
