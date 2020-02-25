@@ -1,5 +1,7 @@
 # Workflow
 
+**Note that the files (LM22-ref-sample.txt, LM22-classes.txt, LM22.txt ) and source code of CIBERSORT can be downloaded from https://cibersort.stanford.edu/ after register. The license of CIBERSORT does not allow us to share these files in this public repository.**
+
 step1: check the gene expression data of purified sample 
 	Input: LM22-ref-sample.txt & LM22-classes.txt & LM22.txt 
 	
@@ -25,3 +27,5 @@ step6: survival analysis (a: cell type specific, b: cell type composition)
 step7: GWAS
 	Input: PCA files & sample files & genotype files & expression_v2_sample.txt
 	Based on: step5 & microbiomeGWAS.R & immune_cell_lineage_tree_434_gene_22ct.tre 
+
+
