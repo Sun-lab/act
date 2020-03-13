@@ -2,6 +2,8 @@
 
 **Note that the files (LM22-ref-sample.txt, LM22-classes.txt, LM22.txt ) and source code of CIBERSORT can be downloaded from https://cibersort.stanford.edu/ after register. The license of CIBERSORT does not allow us to share these files in this public repository.**
 
+The folder **R_batch1** include the codes for the following steps of analysis, with input/results in folders **data** and **figures**. The folder **revision** has the code and part of the results for paper revision.  
+
 step1: check the gene expression data of purified sample 
 	Input: LM22-ref-sample.txt & LM22-classes.txt & LM22.txt 
 	
