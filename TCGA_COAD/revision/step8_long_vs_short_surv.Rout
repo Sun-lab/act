@@ -1,0 +1,370 @@
+
+R version 3.4.1 (2017-06-30) -- "Single Candle"
+Copyright (C) 2017 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> # Permanova for TCGA survival time, 
+> # by comparing patients with long survival time sersus short survival time
+> 
+> rm(list=ls())
+> library(vegan)
+Loading required package: permute
+Loading required package: lattice
+This is vegan 2.4-3
+> library(e1071)
+> library(pROC)
+Type 'citation("pROC")' for a citation.
+
+Attaching package: ‘pROC’
+
+The following objects are masked from ‘package:stats’:
+
+    cov, smooth, var
+
+> source("../R_batch1/Unifrac_dist.R")
+> set.seed(2020)
+> 
+> ## --------------------------------------------------------
+> ## read in sample tcga
+> ## --------------------------------------------------------
+> cf = "../data/COAD_composition.txt"
+> datC = read.table(cf, header = T, as.is = T, row.names = 1, sep='\t',
++                   check.names=FALSE)
+> rownames(datC) = sub("^X", "", rownames(datC))
+> dim(datC)
+[1] 450  22
+> 
+> clinic_dat = read.table("../data/expression_v2_sample.txt", sep="\t",
++                         as.is=TRUE, header=TRUE)
+> 
+> clinic_dat$surv_time = ifelse(is.na(clinic_dat$diagnoses.days_to_death),
++                               clinic_dat$diagnoses.days_to_last_follow_up,
++                               clinic_dat$diagnoses.days_to_death)
+> 
+> clinic_dat$stage = gsub("stage ", "", clinic_dat$diagnoses.tumor_stage)
+> clinic_dat$stage = gsub('[a-c]', "", clinic_dat$stage)
+> clinic_dat$stage[which(clinic_dat$stage=="not reported")] = NA
+> clinic_dat$death = ifelse(clinic_dat$diagnoses.vital_status == 'dead', 1, 0)
+> clinic_dat$gender = clinic_dat$demographic.gender
+> clinic_dat$age_at_diagnosis = clinic_dat$diagnoses.age_at_diagnosis
+> 
+> sam = match(rownames(datC),clinic_dat$participant)
+> if(anyNA(sam)){
++   stop('clinical data does not match with CIBERSOR output')
++ }
+> 
+> dA = cbind(datC, clinic_dat[sam, c("surv_time", "death",'stage',
++                                    "diagnoses.age_at_diagnosis",
++                                    'demographic.gender', 'participant',
++                                    "diagnoses.days_to_death",
++                                    "diagnoses.days_to_last_follow_up",
++                                    "diagnoses.vital_status")])
+> 
+> dA = dA[!is.na(dA$surv_time) &!is.na(dA$death), ]
+> n = nrow(dA)
+> n
+[1] 449
+> 
+> # long survival vs short 0 = short, 1 = 'long'
+> dA$surv_time = ifelse(is.na(dA$diagnoses.days_to_death), 
++                               dA$diagnoses.days_to_last_follow_up, 
++                               dA$diagnoses.days_to_death)
+> # 1 years 
+> dA$surv_1year = NA
+> dA$surv_1year[dA$diagnoses.days_to_death < 365.25] = 0
+> dA$surv_1year[dA$diagnoses.days_to_death > 365.25 | 
++                       dA$diagnoses.days_to_last_follow_up > 365.25] = 1 
+> table(dA$surv_1year, useNA = 'ifany')
+
+   0    1 <NA> 
+  46  344   59 
+> table(dA$surv_1year, 
++       dA$surv_time >365.25, useNA = 'ifany')
+      
+       FALSE TRUE
+  0       46    0
+  1        0  344
+  <NA>    59    0
+> 
+> 
+> # 2 years
+> dA$surv_2year = NA
+> dA$surv_2year[dA$diagnoses.days_to_death < 365.25*2] = 0
+> dA$surv_2year[dA$diagnoses.days_to_death > 365.25*2 | 
++                       dA$diagnoses.days_to_last_follow_up > 365.25*2] = 1 
+> table(dA$surv_2year, useNA = 'ifany')
+
+   0    1 <NA> 
+  68  205  176 
+> table(dA$surv_2year, 
++       dA$surv_time >365.25*2, useNA = 'ifany')
+      
+       FALSE TRUE
+  0       68    0
+  1        0  205
+  <NA>   176    0
+> 
+> # 5 years
+> dA$surv_5year = NA
+> dA$surv_5year[dA$diagnoses.days_to_death < 365.25*5] = 0
+> dA$surv_5year[dA$diagnoses.days_to_death > 365.25*5 | 
++                       dA$diagnoses.days_to_last_follow_up > 365.25*5] = 1 
+> table(dA$surv_5year, useNA = 'ifany')
+
+   0    1 <NA> 
+  92   43  314 
+> table(dA$surv_5year, 
++       dA$surv_time >365.25*5, useNA = 'ifany')
+      
+       FALSE TRUE
+  0       92    0
+  1        0   43
+  <NA>   314    0
+> 
+> table(dA$diagnoses.vital_status, 
++       is.na(dA$diagnoses.days_to_death), useNA = 'ifany')
+       
+        FALSE TRUE
+  alive     0  347
+  dead    102    0
+> 
+> 
+> ## --------------------------------------------------------
+> ## distance matrices
+> ## --------------------------------------------------------
+> datC = datC[dA$participant, ]
+> 
+> ## 22 cell types
+> tree22 = read.tree(file="../data/immune_cell_lineage_tree_434_gene_22ct.tre")
+> tree22$edge.length
+ [1] 49.44844 41.79017 26.03457 26.03457 39.20485 39.20485 42.01849 34.51699
+ [9] 34.60476 39.24386 34.60476 34.51699 35.30971 35.30971 49.44844 36.87773
+[17] 27.15118 27.15118 36.87773 29.70260 29.77833 26.64979 26.64979 28.55149
+[25] 29.50465 30.19819 29.70260 41.82049 18.12484 18.12484 29.38553
+> datP = NodeProp22(datC, tree22)  #for 22 cell types
+> D22ct = GUniFrac(datP, tree22, alpha = 0.5)
+> dim(D22ct)
+[1] 449 449
+> 
+> ## 12 cell types
+> tree12 = read.tree(file="/fh/fast/sun_w/licai/COAD/data_lineage_dist/immune_cell_lineage_tree_cor_434_gene.tre")
+> tree12$edge.length
+ [1] 0.29920350 0.18865056 0.18586632 0.18586632 0.18865056 0.07610271
+ [7] 0.07610271 0.29920350 0.24606402 0.14073808 0.06250261 0.06250261
+[13] 0.07943305 0.07943305 0.09967578 0.14073808
+> datC2 = CellType12(datC)
+> dim(datC2)
+[1] 449  12
+> datP  = NodeProp(datC2, tree12)  #for 12 cell types
+> D12ct = GUniFrac(datP, tree12, alpha = 0.5)
+> dim(D12ct)
+[1] 449 449
+> 
+> 
+> table(colnames(D12ct) == dA$participant)
+
+TRUE 
+ 449 
+> table(rownames(D22ct) == dA$participant)
+
+TRUE 
+ 449 
+> 
+> ## --------------------------------------------------------
+> ## load dist & permanova for binary 
+> ## --------------------------------------------------------
+> 
+> # source("/fh/fast/sun_w/licai/COAD/R_batch5/Permanova_cov_test.R")
+> 
+> # 1 year 
+> sam2kp1 = which(!is.na(dA$surv_1year))
+> length(sam2kp1)
+[1] 390
+> pval12_year1 = adonis(D12ct[sam2kp1,sam2kp1] ~ as.factor(dA$surv_1year[sam2kp1]))
+> pval12_year1
+
+Call:
+adonis(formula = D12ct[sam2kp1, sam2kp1] ~ as.factor(dA$surv_1year[sam2kp1])) 
+
+Permutation: free
+Number of permutations: 999
+
+Terms added sequentially (first to last)
+
+                                   Df SumsOfSqs  MeanSqs F.Model      R2 Pr(>F)
+as.factor(dA$surv_1year[sam2kp1])   1    0.0174 0.017394 0.40756 0.00105  0.844
+Residuals                         388   16.5595 0.042679         0.99895       
+Total                             389   16.5768                  1.00000       
+> pval22_year1 = adonis(D22ct[sam2kp1,sam2kp1] ~ as.factor(dA$surv_1year[sam2kp1]))
+> pval22_year1
+
+Call:
+adonis(formula = D22ct[sam2kp1, sam2kp1] ~ as.factor(dA$surv_1year[sam2kp1])) 
+
+Permutation: free
+Number of permutations: 999
+
+Terms added sequentially (first to last)
+
+                                   Df SumsOfSqs  MeanSqs F.Model     R2 Pr(>F)
+as.factor(dA$surv_1year[sam2kp1])   1    0.0563 0.056275 0.81654 0.0021  0.546
+Residuals                         388   26.7403 0.068918         0.9979       
+Total                             389   26.7966                  1.0000       
+> 
+> # 2 year 
+> sam2kp1 = which(!is.na(dA$surv_2year))
+> length(sam2kp1)
+[1] 273
+> pval12_year2 = adonis(D12ct[sam2kp1,sam2kp1] ~ as.factor(dA$surv_2year[sam2kp1]))
+> pval12_year2
+
+Call:
+adonis(formula = D12ct[sam2kp1, sam2kp1] ~ as.factor(dA$surv_2year[sam2kp1])) 
+
+Permutation: free
+Number of permutations: 999
+
+Terms added sequentially (first to last)
+
+                                   Df SumsOfSqs  MeanSqs F.Model      R2 Pr(>F)
+as.factor(dA$surv_2year[sam2kp1])   1    0.0145 0.014503 0.33243 0.00123   0.89
+Residuals                         271   11.8230 0.043627         0.99877       
+Total                             272   11.8375                  1.00000       
+> pval22_year2 = adonis(D22ct[sam2kp1,sam2kp1] ~ as.factor(dA$surv_2year[sam2kp1]))
+> pval22_year2
+
+Call:
+adonis(formula = D22ct[sam2kp1, sam2kp1] ~ as.factor(dA$surv_2year[sam2kp1])) 
+
+Permutation: free
+Number of permutations: 999
+
+Terms added sequentially (first to last)
+
+                                   Df SumsOfSqs  MeanSqs F.Model      R2 Pr(>F)
+as.factor(dA$surv_2year[sam2kp1])   1    0.0527 0.052675 0.75538 0.00278  0.607
+Residuals                         271   18.8975 0.069732         0.99722       
+Total                             272   18.9502                  1.00000       
+> 
+> 
+> # 5 year 
+> sam2kp1 = which(!is.na(dA$surv_5year))
+> length(sam2kp1)
+[1] 135
+> pval12_year5 = adonis(D12ct[sam2kp1,sam2kp1] ~ as.factor(dA$surv_5year[sam2kp1]))
+> pval12_year5
+
+Call:
+adonis(formula = D12ct[sam2kp1, sam2kp1] ~ as.factor(dA$surv_5year[sam2kp1])) 
+
+Permutation: free
+Number of permutations: 999
+
+Terms added sequentially (first to last)
+
+                                   Df SumsOfSqs  MeanSqs F.Model    R2 Pr(>F)
+as.factor(dA$surv_5year[sam2kp1])   1    0.0060 0.005965 0.13291 0.001  0.987
+Residuals                         133    5.9692 0.044881         0.999       
+Total                             134    5.9752                  1.000       
+> pval22_year5 = adonis(D22ct[sam2kp1,sam2kp1] ~ as.factor(dA$surv_5year[sam2kp1]))
+> pval22_year5
+
+Call:
+adonis(formula = D22ct[sam2kp1, sam2kp1] ~ as.factor(dA$surv_5year[sam2kp1])) 
+
+Permutation: free
+Number of permutations: 999
+
+Terms added sequentially (first to last)
+
+                                   Df SumsOfSqs  MeanSqs F.Model      R2 Pr(>F)
+as.factor(dA$surv_5year[sam2kp1])   1    0.0400 0.040033 0.55493 0.00416  0.808
+Residuals                         133    9.5946 0.072140         0.99584       
+Total                             134    9.6347                  1.00000       
+> 
+> ## --------------------------------------------------------
+> ## svm  
+> ## --------------------------------------------------------
+> CTcomp = datC + 0.0001
+> CTcomp = log(CTcomp/CTcomp$`Macrophages M0`)
+> CTcomp = CTcomp[, -which(colnames(CTcomp) == "Macrophages M0")]
+> 
+> perm = 999
+> func1 <- function(surv, data){
++   fitSVM1 = svm(as.factor(surv) ~ ., data = data)
++   mean(fitSVM1$fitted == as.factor(surv))
++ }
+>  
+> # 1 year 
+> ind1  = which(is.na(dA$surv_1year))
+> dat1  = replicate(perm, sample(dA$surv_1year[-ind1]))
+> dat1  = cbind(dA$surv_1year[-ind1], dat1)
+> dim(dat1)
+[1]  390 1000
+> 
+> accuracy1 = apply(dat1, 2, func1, CTcomp[dA$participant[-ind1], ])
+> accuracy1[1]
+[1] 0.8820513
+
+      0   1
+  0   0   0
+  1  46 344
+
+> mean(accuracy1[1] >= accuracy1[-1]) #pval
+[1] 0.5985986
+> 
+> # 2 year 
+> ind2  = which(is.na(dA$surv_2year))
+> dat2  = replicate(perm, sample(dA$surv_2year[-ind2]))
+> dat2  = cbind(dA$surv_2year[-ind2], dat2)
+> dim(dat2)
+[1]  273 1000
+> 
+> accuracy2 = apply(dat2, 2, func1, CTcomp[dA$participant[-ind2], ])
+> accuracy2[1]
+[1] 0.7765568
+   
+      0   1
+  0   7   0
+  1  61 205
+
+> mean(accuracy2[1] >= accuracy2[-1]) #pval
+[1] 0.9259259
+> 
+> # 5 year
+> ind5  = which(is.na(dA$surv_5year))
+> dat5  = replicate(perm, sample(dA$surv_5year[-ind5]))
+> dat5  = cbind(dA$surv_5year[-ind5], dat5)
+> dim(dat5)
+[1]  135 1000
+> 
+> accuracy5 = apply(dat5, 2, func1, CTcomp[dA$participant[-ind5], ])
+> accuracy5[1]
+[1] 0.7407407
+
+     0  1
+  0 92 35
+  1  0  8
+
+> mean(accuracy5[1] >= accuracy5[-1]) #pval
+[1] 0.6406406
+> 
+> 
+> q('no')
+> proc.time()
+   user  system elapsed 
+ 65.797   0.867  67.445 

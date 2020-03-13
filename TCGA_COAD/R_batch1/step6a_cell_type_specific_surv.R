@@ -161,7 +161,8 @@ func1 <- function(nsim, ctD, clinic_dat){
   return(summary(fit1)$concordance[1])
 }
 
-Cindex = sapply(1:100, func1, ctD, clinic_dat)
+Cindex = sapply(1:100, func1, CTcomp[, "Macrophages M1"], clinic_dat)
+save(Cindex, file ="../data/M1_cstat.Rdata")
 pdf("../figures/C-index for log ratio Macrophages M1.pdf")
 boxplot(Cindex, xlab = "Macrophages M1", ylab = "C-statistics")
 dev.off()

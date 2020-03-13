@@ -180,6 +180,71 @@ NodeProp22 <- function(datC, tree){
   return(cum)
 }
 
+CellType12 <- function(datC){
+  # collapse composition results to large group and rowsum to 1
+  datC = data.matrix(datC)
+  ctL = list()
+  ctL[["T cells follicular helper"]] = "T cells follicular helper"
+  ctL[["T cells regulatory (Tregs)"]] =  "T cells regulatory (Tregs)"
+  ctL[["T CD4"]] =c("T cells CD4 memory activated", "T cells CD4 memory resting", "T cells CD4 naive")
+  ctL[["CD8+_T"]] = c("T cells CD8")
+  ctL[["B lineage"]]      = c("B cells naive", "B cells memory", "Plasma cells")
+  ctL[["NK"]]     = c("NK cells resting", "NK cells activated")
+  ctL[["Dendritic"]]   = c("Dendritic cells activated", "Dendritic cells resting")
+  ctL[["Macrophages"]] = c("Macrophages M0", "Macrophages M1", "Macrophages M2")
+  ctL[["Mast"]]        = c("Mast cells activated", "Mast cells resting")
+  ctL[["Monocytes"]]   = "Monocytes"
+  ctL[["Eosinophils"]] = "Eosinophils"
+  ctL[["Neutrophils"]] = "Neutrophils"
+  
+  
+  datC1 = matrix(NA, nrow = nrow(datC), ncol = length(ctL))
+  colnames(datC1) <- names(ctL)
+  rownames(datC1) <- rownames(datC)
+  for(i in names(ctL)){
+    datC1[,i] = apply(as.matrix(datC[, ctL[[i]]]), 1, sum)
+  }
+  return(datC1/rowSums(datC1))
+}
+
+NodeProp <- function(datC, tree){
+  # Calculate Proportion for all the nodes
+  #	
+  # Args:
+  #		datC: immune cell composition data 
+  #		tree: rooted phylogenetic tree of R class "phylo"
+  #
+  # Returns:
+  # 	datP: immune cell composition data after merge 
+  #         the propotion to the node
+  if (!is.rooted(tree)) stop("Rooted phylogenetic tree required!")
+  
+  # Convert into proportions
+  
+  n <- nrow(datC)
+  datP <- matrix(0, nrow = n, ncol = length(c(tree$tip.label, tree$node.label)))
+  colnames(datP) = c(tree$tip.label, tree$node.label)
+  rownames(datP) = rownames(datC)
+  
+  datC = data.matrix(datC)
+  if( ! all(colnames(datC) %in% c(tree$tip.label, tree$node.label))){  
+    index = match(c("T cells follicular helper",  "T cells regulatory (Tregs)", "T CD4", "B lineage" ), colnames(datC) )
+    colnames(datC)[index[1:3]] = c('Tfh','Tregs', 'other_CD4+T')
+    colnames(datC)[index[4]] = "B"
+  }
+  datP[, colnames(datC)] = datC
+  
+  edge <- as.matrix(tree$edge[order(tree$edge[,2]),])
+  
+  datP[, 'Monocytes'] = apply(datC[, c("Macrophages", "Dendritic", "Monocytes")], 1, sum)
+  datP[, 'Myeloid'] = apply(datP[, c("Mast",'Neutrophils','Eosinophils', 'Monocytes')], 1, sum)
+  datP[, "CD4+_T"] = apply(datP[ , c('Tfh','Tregs', 'other_CD4+T')], 1, sum)
+  datP[, 'T'] = apply(datP[, c("CD4+_T",'CD8+_T') ],1 , sum)
+  datP[, 'Lymphoid'] = apply(datP[, c("T",'B', "NK")], 1, sum )
+  datP[, 'Multipoential_Hematopoietic_Stem_Cell'] = apply(datP[, c("Myeloid",'Lymphoid')], 1, sum )
+  return(datP)
+  
+}
 
 
 

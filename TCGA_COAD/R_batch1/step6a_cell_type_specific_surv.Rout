@@ -19,8 +19,6 @@ Type 'q()' to quit R.
 
 > 
 > library(survival)
-Warning message:
-package ‘survival’ was built under R version 3.4.3 
 > ## --------------------------------------------------------
 > ## read in sample clinical data
 > ## --------------------------------------------------------
@@ -186,7 +184,6 @@ gendermale          1.0597     0.9437    0.7121     1.577
 age_at_diagnosis    1.0001     0.9999    1.0000     1.000
 
 Concordance= 0.572  (se = 0.033 )
-Rsquare= 0.02   (max possible= 0.91 )
 Likelihood ratio test= 8.83  on 3 df,   p=0.03
 Wald test            = 8.41  on 3 df,   p=0.04
 Score (logrank) test = 8.49  on 3 df,   p=0.04
@@ -212,7 +209,6 @@ gendermale          1.0366     0.9647    0.6978     1.540
 age_at_diagnosis    1.0001     0.9999    1.0000     1.000
 
 Concordance= 0.571  (se = 0.033 )
-Rsquare= 0.016   (max possible= 0.91 )
 Likelihood ratio test= 7.3  on 3 df,   p=0.06
 Wald test            = 6.94  on 3 df,   p=0.07
 Score (logrank) test = 7.02  on 3 df,   p=0.07
@@ -238,7 +234,6 @@ gendermale           1.037     0.9639    0.6985     1.541
 age_at_diagnosis     1.000     0.9999    1.0000     1.000
 
 Concordance= 0.578  (se = 0.033 )
-Rsquare= 0.017   (max possible= 0.91 )
 Likelihood ratio test= 7.85  on 3 df,   p=0.05
 Wald test            = 7.56  on 3 df,   p=0.06
 Score (logrank) test = 7.63  on 3 df,   p=0.05
@@ -263,8 +258,7 @@ CTcomp[, i]         0.9826     1.0177    0.9129     1.058
 gendermale          1.0410     0.9606    0.7007     1.547
 age_at_diagnosis    1.0001     0.9999    1.0000     1.000
 
-Concordance= 0.573  (se = 0.033 )
-Rsquare= 0.016   (max possible= 0.91 )
+Concordance= 0.573  (se = 0.032 )
 Likelihood ratio test= 7.43  on 3 df,   p=0.06
 Wald test            = 7.06  on 3 df,   p=0.07
 Score (logrank) test = 7.14  on 3 df,   p=0.07
@@ -290,7 +284,6 @@ gendermale           1.034     0.9668    0.6961     1.537
 age_at_diagnosis     1.000     0.9999    1.0000     1.000
 
 Concordance= 0.58  (se = 0.033 )
-Rsquare= 0.017   (max possible= 0.91 )
 Likelihood ratio test= 7.45  on 3 df,   p=0.06
 Wald test            = 7.12  on 3 df,   p=0.07
 Score (logrank) test = 7.19  on 3 df,   p=0.07
@@ -315,8 +308,7 @@ CTcomp[, i]         0.9622     1.0393    0.9046     1.023
 gendermale          1.0227     0.9778    0.6877     1.521
 age_at_diagnosis    1.0001     0.9999    1.0000     1.000
 
-Concordance= 0.579  (se = 0.033 )
-Rsquare= 0.019   (max possible= 0.91 )
+Concordance= 0.579  (se = 0.032 )
 Likelihood ratio test= 8.67  on 3 df,   p=0.03
 Wald test            = 8.39  on 3 df,   p=0.04
 Score (logrank) test = 8.46  on 3 df,   p=0.04
@@ -341,8 +333,7 @@ CTcomp[, i]         0.9849     1.0153    0.9351     1.037
 gendermale          1.0446     0.9573    0.7030     1.552
 age_at_diagnosis    1.0001     0.9999    1.0000     1.000
 
-Concordance= 0.576  (se = 0.033 )
-Rsquare= 0.017   (max possible= 0.91 )
+Concordance= 0.576  (se = 0.032 )
 Likelihood ratio test= 7.55  on 3 df,   p=0.06
 Wald test            = 7.14  on 3 df,   p=0.07
 Score (logrank) test = 7.22  on 3 df,   p=0.07
@@ -368,7 +359,6 @@ gendermale          1.0366     0.9647    0.6975     1.541
 age_at_diagnosis    1.0001     0.9999    1.0000     1.000
 
 Concordance= 0.573  (se = 0.033 )
-Rsquare= 0.016   (max possible= 0.91 )
 Likelihood ratio test= 7.26  on 3 df,   p=0.06
 Wald test            = 6.9  on 3 df,   p=0.08
 Score (logrank) test = 6.98  on 3 df,   p=0.07
@@ -393,8 +383,7 @@ CTcomp[, i]          0.969     1.0320    0.9024     1.040
 gendermale           1.034     0.9675    0.6956     1.536
 age_at_diagnosis     1.000     0.9999    1.0000     1.000
 
-Concordance= 0.565  (se = 0.033 )
-Rsquare= 0.018   (max possible= 0.91 )
+Concordance= 0.565  (se = 0.032 )
 Likelihood ratio test= 7.96  on 3 df,   p=0.05
 Wald test            = 7.59  on 3 df,   p=0.06
 Score (logrank) test = 7.67  on 3 df,   p=0.05
@@ -420,7 +409,6 @@ gendermale          1.0392     0.9623    0.6995     1.544
 age_at_diagnosis    1.0001     0.9999    1.0000     1.000
 
 Concordance= 0.573  (se = 0.033 )
-Rsquare= 0.016   (max possible= 0.91 )
 Likelihood ratio test= 7.22  on 3 df,   p=0.07
 Wald test            = 6.86  on 3 df,   p=0.08
 Score (logrank) test = 6.94  on 3 df,   p=0.07
@@ -445,8 +433,7 @@ CTcomp[, i]         0.9729     1.0279    0.9039     1.047
 gendermale          1.0492     0.9531    0.7060     1.559
 age_at_diagnosis    1.0001     0.9999    1.0000     1.000
 
-Concordance= 0.568  (se = 0.033 )
-Rsquare= 0.017   (max possible= 0.91 )
+Concordance= 0.568  (se = 0.032 )
 Likelihood ratio test= 7.74  on 3 df,   p=0.05
 Wald test            = 7.37  on 3 df,   p=0.06
 Score (logrank) test = 7.45  on 3 df,   p=0.06
@@ -472,7 +459,6 @@ gendermale          1.0387     0.9628    0.6992     1.543
 age_at_diagnosis    1.0001     0.9999    1.0000     1.000
 
 Concordance= 0.574  (se = 0.033 )
-Rsquare= 0.016   (max possible= 0.91 )
 Likelihood ratio test= 7.27  on 3 df,   p=0.06
 Wald test            = 6.91  on 3 df,   p=0.07
 Score (logrank) test = 6.98  on 3 df,   p=0.07
@@ -498,7 +484,6 @@ gendermale          1.0393     0.9622    0.6997     1.544
 age_at_diagnosis    1.0001     0.9999    1.0000     1.000
 
 Concordance= 0.57  (se = 0.033 )
-Rsquare= 0.016   (max possible= 0.91 )
 Likelihood ratio test= 7.27  on 3 df,   p=0.06
 Wald test            = 6.91  on 3 df,   p=0.07
 Score (logrank) test = 6.99  on 3 df,   p=0.07
@@ -524,7 +509,6 @@ gendermale          0.9828     1.0175    0.6587     1.466
 age_at_diagnosis    1.0001     0.9999    1.0000     1.000
 
 Concordance= 0.598  (se = 0.033 )
-Rsquare= 0.038   (max possible= 0.91 )
 Likelihood ratio test= 17.26  on 3 df,   p=6e-04
 Wald test            = 17.46  on 3 df,   p=6e-04
 Score (logrank) test = 17.67  on 3 df,   p=5e-04
@@ -549,8 +533,7 @@ CTcomp[, i]          1.020     0.9800    0.9544     1.091
 gendermale           1.038     0.9630    0.6991     1.542
 age_at_diagnosis     1.000     0.9999    1.0000     1.000
 
-Concordance= 0.571  (se = 0.033 )
-Rsquare= 0.017   (max possible= 0.91 )
+Concordance= 0.571  (se = 0.032 )
 Likelihood ratio test= 7.57  on 3 df,   p=0.06
 Wald test            = 7.19  on 3 df,   p=0.07
 Score (logrank) test = 7.26  on 3 df,   p=0.06
@@ -575,8 +558,7 @@ CTcomp[, i]         0.9733     1.0274    0.9109     1.040
 gendermale          1.0285     0.9723    0.6917     1.529
 age_at_diagnosis    1.0001     0.9999    1.0000     1.000
 
-Concordance= 0.571  (se = 0.033 )
-Rsquare= 0.017   (max possible= 0.91 )
+Concordance= 0.571  (se = 0.032 )
 Likelihood ratio test= 7.85  on 3 df,   p=0.05
 Wald test            = 7.49  on 3 df,   p=0.06
 Score (logrank) test = 7.58  on 3 df,   p=0.06
@@ -601,8 +583,7 @@ CTcomp[, i]         0.9737     1.0270    0.8916     1.063
 gendermale          1.0303     0.9705    0.6932     1.532
 age_at_diagnosis    1.0001     0.9999    1.0000     1.000
 
-Concordance= 0.559  (se = 0.033 )
-Rsquare= 0.017   (max possible= 0.91 )
+Concordance= 0.559  (se = 0.032 )
 Likelihood ratio test= 7.58  on 3 df,   p=0.06
 Wald test            = 7.19  on 3 df,   p=0.07
 Score (logrank) test = 7.27  on 3 df,   p=0.06
@@ -627,8 +608,7 @@ CTcomp[, i]         0.9886     1.0115    0.9190     1.063
 gendermale          1.0380     0.9634    0.6988     1.542
 age_at_diagnosis    1.0001     0.9999    1.0000     1.000
 
-Concordance= 0.575  (se = 0.033 )
-Rsquare= 0.016   (max possible= 0.91 )
+Concordance= 0.575  (se = 0.032 )
 Likelihood ratio test= 7.31  on 3 df,   p=0.06
 Wald test            = 6.94  on 3 df,   p=0.07
 Score (logrank) test = 7.02  on 3 df,   p=0.07
@@ -653,8 +633,7 @@ CTcomp[, i]           0.99     1.0101    0.9295     1.054
 gendermale            1.04     0.9618    0.7000     1.544
 age_at_diagnosis      1.00     0.9999    1.0000     1.000
 
-Concordance= 0.567  (se = 0.033 )
-Rsquare= 0.016   (max possible= 0.91 )
+Concordance= 0.567  (se = 0.032 )
 Likelihood ratio test= 7.31  on 3 df,   p=0.06
 Wald test            = 6.95  on 3 df,   p=0.07
 Score (logrank) test = 7.02  on 3 df,   p=0.07
@@ -680,7 +659,6 @@ gendermale           1.041     0.9602    0.7007     1.548
 age_at_diagnosis     1.000     0.9999    1.0000     1.000
 
 Concordance= 0.578  (se = 0.033 )
-Rsquare= 0.016   (max possible= 0.91 )
 Likelihood ratio test= 7.27  on 3 df,   p=0.06
 Wald test            = 6.91  on 3 df,   p=0.07
 Score (logrank) test = 6.99  on 3 df,   p=0.07
@@ -706,7 +684,6 @@ gendermale           1.043     0.9590    0.7018     1.549
 age_at_diagnosis     1.000     0.9999    1.0000     1.000
 
 Concordance= 0.581  (se = 0.033 )
-Rsquare= 0.016   (max possible= 0.91 )
 Likelihood ratio test= 7.42  on 3 df,   p=0.06
 Wald test            = 7.08  on 3 df,   p=0.07
 Score (logrank) test = 7.16  on 3 df,   p=0.07
@@ -851,8 +828,7 @@ stageiii            4.1783    0.23933    1.6211    10.770
 stageiv            10.8595    0.09209    4.1833    28.190
 age_at_diagnosis    1.0001    0.99990    1.0000     1.000
 
-Concordance= 0.728  (se = 0.033 )
-Rsquare= 0.13   (max possible= 0.903 )
+Concordance= 0.728  (se = 0.029 )
 Likelihood ratio test= 60.58  on 6 df,   p=3e-11
 Wald test            = 60.51  on 6 df,   p=4e-11
 Score (logrank) test = 69.47  on 6 df,   p=5e-13
@@ -883,8 +859,7 @@ stageiii            4.3774    0.22845    1.6944    11.309
 stageiv            11.2457    0.08892    4.3220    29.261
 age_at_diagnosis    1.0001    0.99990    1.0000     1.000
 
-Concordance= 0.731  (se = 0.033 )
-Rsquare= 0.127   (max possible= 0.903 )
+Concordance= 0.731  (se = 0.029 )
 Likelihood ratio test= 59.3  on 6 df,   p=6e-11
 Wald test            = 59.49  on 6 df,   p=6e-11
 Score (logrank) test = 68.74  on 6 df,   p=7e-13
@@ -915,8 +890,7 @@ stageiii            4.4902    0.22271    1.7370    11.607
 stageiv            11.6095    0.08614    4.4547    30.256
 age_at_diagnosis    1.0001    0.99990    1.0001     1.000
 
-Concordance= 0.73  (se = 0.033 )
-Rsquare= 0.131   (max possible= 0.903 )
+Concordance= 0.73  (se = 0.029 )
 Likelihood ratio test= 61.09  on 6 df,   p=3e-11
 Wald test            = 60.42  on 6 df,   p=4e-11
 Score (logrank) test = 69.91  on 6 df,   p=4e-13
@@ -947,8 +921,7 @@ stageiii            4.2657    0.23443    1.6519    11.015
 stageiv            10.9692    0.09116    4.2140    28.553
 age_at_diagnosis    1.0001    0.99990    1.0000     1.000
 
-Concordance= 0.728  (se = 0.033 )
-Rsquare= 0.126   (max possible= 0.903 )
+Concordance= 0.728  (se = 0.029 )
 Likelihood ratio test= 58.68  on 6 df,   p=8e-11
 Wald test            = 58.87  on 6 df,   p=8e-11
 Score (logrank) test = 68.08  on 6 df,   p=1e-12
@@ -979,8 +952,7 @@ stageiii            4.4029    0.22712    1.7065    11.360
 stageiv            11.4711    0.08718    4.4060    29.865
 age_at_diagnosis    1.0001    0.99990    1.0001     1.000
 
-Concordance= 0.732  (se = 0.033 )
-Rsquare= 0.129   (max possible= 0.903 )
+Concordance= 0.732  (se = 0.028 )
 Likelihood ratio test= 60.24  on 6 df,   p=4e-11
 Wald test            = 60.52  on 6 df,   p=4e-11
 Score (logrank) test = 69.81  on 6 df,   p=4e-13
@@ -1011,8 +983,7 @@ stageiii            4.2261    0.23663    1.6392    10.896
 stageiv            11.0184    0.09076    4.2450    28.600
 age_at_diagnosis    1.0001    0.99990    1.0000     1.000
 
-Concordance= 0.73  (se = 0.033 )
-Rsquare= 0.127   (max possible= 0.903 )
+Concordance= 0.73  (se = 0.029 )
 Likelihood ratio test= 59.08  on 6 df,   p=7e-11
 Wald test            = 59.83  on 6 df,   p=5e-11
 Score (logrank) test = 68.8  on 6 df,   p=7e-13
@@ -1043,8 +1014,7 @@ stageiii            4.3546    0.22964    1.6872    11.239
 stageiv            11.4377    0.08743    4.3801    29.867
 age_at_diagnosis    1.0001    0.99990    1.0000     1.000
 
-Concordance= 0.728  (se = 0.033 )
-Rsquare= 0.127   (max possible= 0.903 )
+Concordance= 0.728  (se = 0.029 )
 Likelihood ratio test= 59.31  on 6 df,   p=6e-11
 Wald test            = 59.69  on 6 df,   p=5e-11
 Score (logrank) test = 68.84  on 6 df,   p=7e-13
@@ -1075,8 +1045,7 @@ stageiii            4.2821    0.23353    1.6614    11.037
 stageiv            11.2521    0.08887    4.3193    29.313
 age_at_diagnosis    1.0001    0.99991    1.0000     1.000
 
-Concordance= 0.731  (se = 0.033 )
-Rsquare= 0.127   (max possible= 0.903 )
+Concordance= 0.731  (se = 0.029 )
 Likelihood ratio test= 59.1  on 6 df,   p=7e-11
 Wald test            = 59.41  on 6 df,   p=6e-11
 Score (logrank) test = 68.52  on 6 df,   p=8e-13
@@ -1107,8 +1076,7 @@ stageiii            4.2523     0.2352    1.6496    10.962
 stageiv            10.8701     0.0920    4.1837    28.243
 age_at_diagnosis    1.0001     0.9999    1.0000     1.000
 
-Concordance= 0.726  (se = 0.033 )
-Rsquare= 0.127   (max possible= 0.903 )
+Concordance= 0.726  (se = 0.029 )
 Likelihood ratio test= 59.33  on 6 df,   p=6e-11
 Wald test            = 59.5  on 6 df,   p=6e-11
 Score (logrank) test = 68.81  on 6 df,   p=7e-13
@@ -1139,8 +1107,7 @@ stageiii            4.3884    0.22788    1.6979    11.342
 stageiv            11.3061    0.08845    4.3405    29.450
 age_at_diagnosis    1.0001    0.99990    1.0000     1.000
 
-Concordance= 0.732  (se = 0.033 )
-Rsquare= 0.127   (max possible= 0.903 )
+Concordance= 0.732  (se = 0.028 )
 Likelihood ratio test= 59.4  on 6 df,   p=6e-11
 Wald test            = 59.54  on 6 df,   p=6e-11
 Score (logrank) test = 68.85  on 6 df,   p=7e-13
@@ -1171,8 +1138,7 @@ stageiii            4.2179    0.23708    1.6359    10.875
 stageiv            11.3471    0.08813    4.3583    29.543
 age_at_diagnosis    1.0001    0.99990    1.0000     1.000
 
-Concordance= 0.731  (se = 0.033 )
-Rsquare= 0.128   (max possible= 0.903 )
+Concordance= 0.731  (se = 0.029 )
 Likelihood ratio test= 59.94  on 6 df,   p=5e-11
 Wald test            = 59.51  on 6 df,   p=6e-11
 Score (logrank) test = 68.77  on 6 df,   p=7e-13
@@ -1203,8 +1169,7 @@ stageiii            4.3067    0.23220    1.6707    11.102
 stageiv            11.2954    0.08853    4.3346    29.434
 age_at_diagnosis    1.0001    0.99991    1.0000     1.000
 
-Concordance= 0.732  (se = 0.033 )
-Rsquare= 0.127   (max possible= 0.903 )
+Concordance= 0.732  (se = 0.029 )
 Likelihood ratio test= 59.14  on 6 df,   p=7e-11
 Wald test            = 59.66  on 6 df,   p=5e-11
 Score (logrank) test = 68.79  on 6 df,   p=7e-13
@@ -1235,8 +1200,7 @@ stageiii            4.2688    0.23426    1.6555    11.007
 stageiv            10.9755    0.09111    4.2264    28.502
 age_at_diagnosis    1.0001    0.99990    1.0000     1.000
 
-Concordance= 0.728  (se = 0.033 )
-Rsquare= 0.126   (max possible= 0.903 )
+Concordance= 0.728  (se = 0.029 )
 Likelihood ratio test= 58.68  on 6 df,   p=8e-11
 Wald test            = 58.88  on 6 df,   p=8e-11
 Score (logrank) test = 68.11  on 6 df,   p=1e-12
@@ -1267,8 +1231,7 @@ stageiii            4.1088     0.2434    1.5917   10.6062
 stageiv             9.8906     0.1011    3.7768   25.9011
 age_at_diagnosis    1.0001     0.9999    1.0001    1.0002
 
-Concordance= 0.73  (se = 0.033 )
-Rsquare= 0.133   (max possible= 0.903 )
+Concordance= 0.73  (se = 0.028 )
 Likelihood ratio test= 62.43  on 6 df,   p=1e-11
 Wald test            = 61.6  on 6 df,   p=2e-11
 Score (logrank) test = 71.12  on 6 df,   p=2e-13
@@ -1299,8 +1262,7 @@ stageiii            4.2315    0.23632    1.6410    10.911
 stageiv            10.9209    0.09157    4.2059    28.357
 age_at_diagnosis    1.0001    0.99990    1.0000     1.000
 
-Concordance= 0.731  (se = 0.033 )
-Rsquare= 0.126   (max possible= 0.903 )
+Concordance= 0.731  (se = 0.029 )
 Likelihood ratio test= 58.96  on 6 df,   p=7e-11
 Wald test            = 59.14  on 6 df,   p=7e-11
 Score (logrank) test = 68.36  on 6 df,   p=9e-13
@@ -1331,8 +1293,7 @@ stageiii            4.2957    0.23279    1.6601    11.116
 stageiv            11.0532    0.09047    4.2377    28.830
 age_at_diagnosis    1.0001    0.99990    1.0000     1.000
 
-Concordance= 0.729  (se = 0.033 )
-Rsquare= 0.126   (max possible= 0.903 )
+Concordance= 0.729  (se = 0.029 )
 Likelihood ratio test= 58.71  on 6 df,   p=8e-11
 Wald test            = 58.93  on 6 df,   p=7e-11
 Score (logrank) test = 68.13  on 6 df,   p=1e-12
@@ -1363,8 +1324,7 @@ stageiii            4.3784     0.2284    1.6875    11.360
 stageiv            11.2610     0.0888    4.3071    29.442
 age_at_diagnosis    1.0001     0.9999    1.0000     1.000
 
-Concordance= 0.73  (se = 0.033 )
-Rsquare= 0.126   (max possible= 0.903 )
+Concordance= 0.73  (se = 0.029 )
 Likelihood ratio test= 58.91  on 6 df,   p=7e-11
 Wald test            = 58.97  on 6 df,   p=7e-11
 Score (logrank) test = 68.22  on 6 df,   p=9e-13
@@ -1395,8 +1355,7 @@ stageiii            4.3013    0.23249    1.6673    11.096
 stageiv            11.1433    0.08974    4.2771    29.032
 age_at_diagnosis    1.0001    0.99990    1.0001     1.000
 
-Concordance= 0.729  (se = 0.033 )
-Rsquare= 0.126   (max possible= 0.903 )
+Concordance= 0.729  (se = 0.029 )
 Likelihood ratio test= 58.84  on 6 df,   p=8e-11
 Wald test            = 58.94  on 6 df,   p=7e-11
 Score (logrank) test = 68.19  on 6 df,   p=1e-12
@@ -1427,8 +1386,7 @@ stageiii            4.2797    0.23366    1.6601    11.033
 stageiv            11.1548    0.08965    4.2827    29.054
 age_at_diagnosis    1.0001    0.99990    1.0001     1.000
 
-Concordance= 0.728  (se = 0.033 )
-Rsquare= 0.126   (max possible= 0.903 )
+Concordance= 0.728  (se = 0.029 )
 Likelihood ratio test= 58.88  on 6 df,   p=8e-11
 Wald test            = 58.9  on 6 df,   p=8e-11
 Score (logrank) test = 68.13  on 6 df,   p=1e-12
@@ -1459,8 +1417,7 @@ stageiii            4.2684     0.2343    1.6558    11.003
 stageiv            10.9644     0.0912    4.2209    28.481
 age_at_diagnosis    1.0001     0.9999    1.0000     1.000
 
-Concordance= 0.729  (se = 0.033 )
-Rsquare= 0.126   (max possible= 0.903 )
+Concordance= 0.729  (se = 0.029 )
 Likelihood ratio test= 58.69  on 6 df,   p=8e-11
 Wald test            = 58.91  on 6 df,   p=8e-11
 Score (logrank) test = 68.15  on 6 df,   p=1e-12
@@ -1491,8 +1448,7 @@ stageiii            4.3282    0.23104    1.6758    11.179
 stageiv            10.9312    0.09148    4.2089    28.390
 age_at_diagnosis    1.0001    0.99990    1.0000     1.000
 
-Concordance= 0.732  (se = 0.033 )
-Rsquare= 0.126   (max possible= 0.903 )
+Concordance= 0.732  (se = 0.029 )
 Likelihood ratio test= 58.9  on 6 df,   p=8e-11
 Wald test            = 59.48  on 6 df,   p=6e-11
 Score (logrank) test = 68.65  on 6 df,   p=8e-13
@@ -1633,8 +1589,7 @@ ctcHigh             1.5967     0.6263    0.7397     3.447
 gendermale          0.8133     1.2295    0.4104     1.612
 age_at_diagnosis    1.0001     0.9999    1.0000     1.000
 
-Concordance= 0.61  (se = 0.056 )
-Rsquare= 0.029   (max possible= 0.83 )
+Concordance= 0.61  (se = 0.057 )
 Likelihood ratio test= 5  on 3 df,   p=0.2
 Wald test            = 4.94  on 3 df,   p=0.2
 Score (logrank) test = 5.03  on 3 df,   p=0.2
@@ -1657,8 +1612,7 @@ ctcHigh             0.3618     2.7642   0.04993     2.621
 gendermale          1.0037     0.9963   0.58770     1.714
 age_at_diagnosis    1.0000     1.0000   0.99998     1.000
 
-Concordance= 0.556  (se = 0.043 )
-Rsquare= 0.016   (max possible= 0.908 )
+Concordance= 0.556  (se = 0.041 )
 Likelihood ratio test= 3.51  on 3 df,   p=0.3
 Wald test            = 3  on 3 df,   p=0.4
 Score (logrank) test = 3.11  on 3 df,   p=0.4
@@ -1683,8 +1637,7 @@ ctcHigh             0.5413     1.8474    0.2409     1.216
 gendermale          0.8254     1.2115    0.4554     1.496
 age_at_diagnosis    1.0001     0.9999    1.0000     1.000
 
-Concordance= 0.591  (se = 0.048 )
-Rsquare= 0.035   (max possible= 0.892 )
+Concordance= 0.591  (se = 0.051 )
 Likelihood ratio test= 6.7  on 3 df,   p=0.08
 Wald test            = 6.24  on 3 df,   p=0.1
 Score (logrank) test = 6.4  on 3 df,   p=0.09
@@ -1709,8 +1662,7 @@ ctcHigh             1.6462     0.6075    0.8529     3.178
 gendermale          0.9067     1.1029    0.4811     1.709
 age_at_diagnosis    1.0001     0.9999    1.0000     1.000
 
-Concordance= 0.616  (se = 0.05 )
-Rsquare= 0.044   (max possible= 0.894 )
+Concordance= 0.616  (se = 0.053 )
 Likelihood ratio test= 7.24  on 3 df,   p=0.06
 Wald test            = 6.84  on 3 df,   p=0.08
 Score (logrank) test = 6.98  on 3 df,   p=0.07
@@ -1735,8 +1687,7 @@ ctcHigh             0.8858     1.1289    0.2147     3.655
 gendermale          1.2145     0.8234    0.6872     2.146
 age_at_diagnosis    1.0001     0.9999    1.0000     1.000
 
-Concordance= 0.566  (se = 0.044 )
-Rsquare= 0.023   (max possible= 0.889 )
+Concordance= 0.566  (se = 0.041 )
 Likelihood ratio test= 5.27  on 3 df,   p=0.2
 Wald test            = 4.92  on 3 df,   p=0.2
 Score (logrank) test = 5  on 3 df,   p=0.2
@@ -1759,8 +1710,7 @@ ctcHigh              1.709     0.5852    0.7679     3.803
 gendermale           1.108     0.9022    0.5535     2.220
 age_at_diagnosis     1.000     1.0000    0.9999     1.000
 
-Concordance= 0.551  (se = 0.056 )
-Rsquare= 0.016   (max possible= 0.829 )
+Concordance= 0.551  (se = 0.051 )
 Likelihood ratio test= 2.66  on 3 df,   p=0.4
 Wald test            = 2.45  on 3 df,   p=0.5
 Score (logrank) test = 2.51  on 3 df,   p=0.5
@@ -1785,8 +1735,7 @@ ctcHigh             0.7203     1.3883    0.3580     1.449
 gendermale          0.8127     1.2305    0.4172     1.583
 age_at_diagnosis    1.0001     0.9999    1.0000     1.000
 
-Concordance= 0.584  (se = 0.056 )
-Rsquare= 0.028   (max possible= 0.835 )
+Concordance= 0.584  (se = 0.062 )
 Likelihood ratio test= 4.77  on 3 df,   p=0.2
 Wald test            = 4.62  on 3 df,   p=0.2
 Score (logrank) test = 4.68  on 3 df,   p=0.2
@@ -1809,8 +1758,7 @@ ctcHigh          3.775e-08  2.649e+07    0.0000       Inf
 gendermale       1.055e+00  9.478e-01    0.6158     1.808
 age_at_diagnosis 1.000e+00  1.000e+00    1.0000     1.000
 
-Concordance= 0.54  (se = 0.043 )
-Rsquare= 0.032   (max possible= 0.908 )
+Concordance= 0.54  (se = 0.041 )
 Likelihood ratio test= 6.99  on 3 df,   p=0.07
 Wald test            = 0.04  on 3 df,   p=1
 Score (logrank) test = 3.83  on 3 df,   p=0.3
@@ -1833,8 +1781,7 @@ ctcHigh             0.7431      1.346    0.3880     1.423
 gendermale          0.9093      1.100    0.5014     1.649
 age_at_diagnosis    1.0000      1.000    1.0000     1.000
 
-Concordance= 0.566  (se = 0.049 )
-Rsquare= 0.014   (max possible= 0.872 )
+Concordance= 0.566  (se = 0.051 )
 Likelihood ratio test= 2.85  on 3 df,   p=0.4
 Wald test            = 2.81  on 3 df,   p=0.4
 Score (logrank) test = 2.83  on 3 df,   p=0.4
@@ -1857,8 +1804,7 @@ ctcHigh             0.3755     2.6631   0.05179     2.722
 gendermale          1.0224     0.9781   0.59126     1.768
 age_at_diagnosis    1.0000     1.0000   0.99998     1.000
 
-Concordance= 0.55  (se = 0.044 )
-Rsquare= 0.015   (max possible= 0.898 )
+Concordance= 0.55  (se = 0.043 )
 Likelihood ratio test= 3.44  on 3 df,   p=0.3
 Wald test            = 2.95  on 3 df,   p=0.4
 Score (logrank) test = 3.05  on 3 df,   p=0.4
@@ -1883,8 +1829,7 @@ ctcHigh             0.5993     1.6687    0.3064     1.172
 gendermale          1.0967     0.9118    0.5749     2.092
 age_at_diagnosis    1.0001     0.9999    1.0000     1.000
 
-Concordance= 0.579  (se = 0.054 )
-Rsquare= 0.038   (max possible= 0.841 )
+Concordance= 0.579  (se = 0.049 )
 Likelihood ratio test= 6.9  on 3 df,   p=0.08
 Wald test            = 6.42  on 3 df,   p=0.09
 Score (logrank) test = 6.55  on 3 df,   p=0.09
@@ -1908,7 +1853,6 @@ gendermale          0.9508      1.052    0.5590     1.617
 age_at_diagnosis    1.0000      1.000    1.0000     1.000
 
 Concordance= 0.551  (se = 0.043 )
-Rsquare= 0.013   (max possible= 0.904 )
 Likelihood ratio test= 2.8  on 3 df,   p=0.4
 Wald test            = 2.64  on 3 df,   p=0.5
 Score (logrank) test = 2.67  on 3 df,   p=0.4
@@ -1933,8 +1877,7 @@ ctcHigh          3.854e-08  2.594e+07    0.0000       Inf
 gendermale       8.140e-01  1.228e+00    0.4795     1.382
 age_at_diagnosis 1.000e+00  9.999e-01    1.0000     1.000
 
-Concordance= 0.592  (se = 0.043 )
-Rsquare= 0.041   (max possible= 0.916 )
+Concordance= 0.592  (se = 0.041 )
 Likelihood ratio test= 9.05  on 3 df,   p=0.03
 Wald test            = 0.58  on 3 df,   p=0.9
 Score (logrank) test = 6.3  on 3 df,   p=0.1
@@ -1959,8 +1902,7 @@ ctcHigh             0.6186     1.6165    0.2759     1.387
 gendermale          0.7617     1.3128    0.4297     1.350
 age_at_diagnosis    1.0001     0.9999    1.0000     1.000
 
-Concordance= 0.568  (se = 0.047 )
-Rsquare= 0.025   (max possible= 0.883 )
+Concordance= 0.568  (se = 0.049 )
 Likelihood ratio test= 5.13  on 3 df,   p=0.2
 Wald test            = 4.92  on 3 df,   p=0.2
 Score (logrank) test = 4.97  on 3 df,   p=0.2
@@ -1983,8 +1925,7 @@ ctcHigh             1.1560     0.8651    0.6668     2.004
 gendermale          0.6734     1.4850    0.3880     1.169
 age_at_diagnosis    1.0001     0.9999    1.0000     1.000
 
-Concordance= 0.556  (se = 0.045 )
-Rsquare= 0.021   (max possible= 0.911 )
+Concordance= 0.556  (se = 0.046 )
 Likelihood ratio test= 4.12  on 3 df,   p=0.2
 Wald test            = 4.15  on 3 df,   p=0.2
 Score (logrank) test = 4.16  on 3 df,   p=0.2
@@ -2009,8 +1950,7 @@ ctcHigh             0.2560     3.9059   0.07958    0.8236
 gendermale          0.9488     1.0540   0.54297    1.6579
 age_at_diagnosis    1.0001     0.9999   1.00002    1.0001
 
-Concordance= 0.643  (se = 0.044 )
-Rsquare= 0.074   (max possible= 0.905 )
+Concordance= 0.643  (se = 0.039 )
 Likelihood ratio test= 15.64  on 3 df,   p=0.001
 Wald test            = 12.1  on 3 df,   p=0.007
 Score (logrank) test = 13.17  on 3 df,   p=0.004
@@ -2035,8 +1975,7 @@ ctcHigh          4.235e-08  2.362e+07    0.0000       Inf
 gendermale       1.069e+00  9.356e-01    0.6056     1.886
 age_at_diagnosis 1.000e+00  9.999e-01    1.0000     1.000
 
-Concordance= 0.609  (se = 0.045 )
-Rsquare= 0.051   (max possible= 0.885 )
+Concordance= 0.609  (se = 0.04 )
 Likelihood ratio test= 11.3  on 3 df,   p=0.01
 Wald test            = 0.05  on 3 df,   p=1
 Score (logrank) test = 8.6  on 3 df,   p=0.04
@@ -2061,8 +2000,7 @@ ctcHigh             0.5531     1.8080    0.1720     1.779
 gendermale          1.0040     0.9960    0.5752     1.753
 age_at_diagnosis    1.0001     0.9999    1.0000     1.000
 
-Concordance= 0.566  (se = 0.045 )
-Rsquare= 0.021   (max possible= 0.885 )
+Concordance= 0.566  (se = 0.046 )
 Likelihood ratio test= 4.69  on 3 df,   p=0.2
 Wald test            = 4.32  on 3 df,   p=0.2
 Score (logrank) test = 4.39  on 3 df,   p=0.2
@@ -2087,8 +2025,7 @@ ctcHigh             1.1826     0.8456    0.6479     2.158
 gendermale          0.8852     1.1297    0.4828     1.623
 age_at_diagnosis    1.0001     0.9999    1.0000     1.000
 
-Concordance= 0.637  (se = 0.049 )
-Rsquare= 0.043   (max possible= 0.881 )
+Concordance= 0.637  (se = 0.043 )
 Likelihood ratio test= 8  on 3 df,   p=0.05
 Wald test            = 7.47  on 3 df,   p=0.06
 Score (logrank) test = 7.59  on 3 df,   p=0.06
@@ -2113,8 +2050,7 @@ ctcHigh             0.3262     3.0655   0.04499     2.365
 gendermale          0.9329     1.0719   0.54121     1.608
 age_at_diagnosis    1.0001     0.9999   1.00001     1.000
 
-Concordance= 0.597  (se = 0.043 )
-Rsquare= 0.029   (max possible= 0.908 )
+Concordance= 0.597  (se = 0.044 )
 Likelihood ratio test= 6.46  on 3 df,   p=0.09
 Wald test            = 5.7  on 3 df,   p=0.1
 Score (logrank) test = 5.82  on 3 df,   p=0.1
@@ -2139,19 +2075,18 @@ ctcHigh             0.2928     3.4150   0.04035     2.125
 gendermale          1.2235     0.8173   0.68595     2.182
 age_at_diagnosis    1.0001     0.9999   1.00000     1.000
 
-Concordance= 0.592  (se = 0.046 )
-Rsquare= 0.03   (max possible= 0.875 )
+Concordance= 0.592  (se = 0.042 )
 Likelihood ratio test= 6.74  on 3 df,   p=0.08
 Wald test            = 5.8  on 3 df,   p=0.1
 Score (logrank) test = 6  on 3 df,   p=0.1
 
 Warning messages:
 1: In fitter(X, Y, strats, offset, init, control, weights = weights,  :
-  Loglik converged before variable  1 ; beta may be infinite. 
+  Loglik converged before variable  1 ; coefficient may be infinite. 
 2: In fitter(X, Y, strats, offset, init, control, weights = weights,  :
-  Loglik converged before variable  1 ; beta may be infinite. 
+  Loglik converged before variable  1 ; coefficient may be infinite. 
 3: In fitter(X, Y, strats, offset, init, control, weights = weights,  :
-  Loglik converged before variable  1 ; beta may be infinite. 
+  Loglik converged before variable  1 ; coefficient may be infinite. 
 > 
 > 
 > colnames(cox_surv_ct)  = c('n', 'nevent',  "NLow",
@@ -2166,7 +2101,7 @@ T cells CD8                  160     40   NA   0.4984786 1.646215e+00
 T cells CD4 naive            222     50   NA  -0.1212712 8.857937e-01
 T cells CD4 memory resting   166     34   NA   0.5358334 1.708872e+00
 T cells CD4 memory activated 170     35   NA  -0.3280980 7.202924e-01
-T cells follicular helper    215     54   NA -17.0922577 3.775085e-08
+T cells follicular helper    215     54   NA -17.0922578 3.775085e-08
 T cells regulatory (Tregs)   199     45   NA  -0.2969225 7.431016e-01
 T cells gamma delta          223     53   NA  -0.9795086 3.754956e-01
 NK cells resting             179     38   NA  -0.5120654 5.992566e-01
@@ -2188,16 +2123,16 @@ T cells CD8                     0.3355339  1.485628093 0.13737752
 T cells CD4 naive               0.7231577 -0.167696712 0.86682188
 T cells CD4 memory resting      0.4081344  1.312884685 0.18922181
 T cells CD4 memory activated    0.3567697 -0.919635394 0.35776332
-T cells follicular helper    2816.3637435 -0.006068910 0.99515774
+T cells follicular helper    2816.3637477 -0.006068910 0.99515774
 T cells regulatory (Tregs)      0.3315342 -0.895601576 0.37046559
 T cells gamma delta             1.0107217 -0.969118068 0.33248628
 NK cells resting                0.3422063 -1.496364631 0.13455866
 NK cells activated              0.7212856 -0.753786454 0.45097746
-Monocytes                    3070.1180500 -0.005560519 0.99556337
+Monocytes                    3070.1180511 -0.005560519 0.99556337
 Macrophages M1                  0.4119959 -1.165719689 0.24372780
 Macrophages M2                  0.2807692  0.516309349 0.60563837
 Dendritic cells resting         0.5961711 -2.285415982 0.02228845
-Dendritic cells activated    3262.2901739 -0.005204140 0.99584772
+Dendritic cells activated    3262.2901792 -0.005204140 0.99584772
 Mast cells resting              0.5959296 -0.993741364 0.32034880
 Mast cells activated            0.3070029  0.546236428 0.58490343
 Eosinophils                     1.0107511 -1.108286956 0.26773791
@@ -2248,8 +2183,7 @@ stageiii            1.8448     0.5421    0.4764     7.144
 stageiv             7.1369     0.1401    1.9666    25.900
 age_at_diagnosis    1.0001     0.9999    1.0000     1.000
 
-Concordance= 0.744  (se = 0.057 )
-Rsquare= 0.13   (max possible= 0.82 )
+Concordance= 0.744  (se = 0.048 )
 Likelihood ratio test= 22.91  on 6 df,   p=8e-04
 Wald test            = 23.64  on 6 df,   p=6e-04
 Score (logrank) test = 28.4  on 6 df,   p=8e-05
@@ -2280,8 +2214,7 @@ stageiii            2.6552     0.3766   0.88010     8.011
 stageiv             8.5131     0.1175   2.87160    25.238
 age_at_diagnosis    1.0001     0.9999   1.00001     1.000
 
-Concordance= 0.722  (se = 0.043 )
-Rsquare= 0.144   (max possible= 0.904 )
+Concordance= 0.722  (se = 0.039 )
 Likelihood ratio test= 33.66  on 6 df,   p=8e-06
 Wald test            = 35.41  on 6 df,   p=4e-06
 Score (logrank) test = 42.85  on 6 df,   p=1e-07
@@ -2312,8 +2245,7 @@ stageiii            2.2158     0.4513    0.6161     7.969
 stageiv             6.0924     0.1641    1.7294    21.463
 age_at_diagnosis    1.0001     0.9999    1.0000     1.000
 
-Concordance= 0.708  (se = 0.049 )
-Rsquare= 0.127   (max possible= 0.883 )
+Concordance= 0.708  (se = 0.047 )
 Likelihood ratio test= 24.75  on 6 df,   p=4e-04
 Wald test            = 25.94  on 6 df,   p=2e-04
 Score (logrank) test = 29.02  on 6 df,   p=6e-05
@@ -2344,8 +2276,7 @@ stageiii           10.6153     0.0942    1.3640    82.612
 stageiv            34.3640     0.0291    4.3048   274.317
 age_at_diagnosis    1.0001     0.9999    1.0001     1.000
 
-Concordance= 0.748  (se = 0.052 )
-Rsquare= 0.197   (max possible= 0.881 )
+Concordance= 0.748  (se = 0.045 )
 Likelihood ratio test= 34.03  on 6 df,   p=7e-06
 Wald test            = 27.46  on 6 df,   p=1e-04
 Score (logrank) test = 33.83  on 6 df,   p=7e-06
@@ -2376,8 +2307,7 @@ stageiii             2.807     0.3562    0.9093     8.666
 stageiv              7.927     0.1262    2.6164    24.017
 age_at_diagnosis     1.000     0.9999    1.0000     1.000
 
-Concordance= 0.711  (se = 0.045 )
-Rsquare= 0.124   (max possible= 0.884 )
+Concordance= 0.711  (se = 0.041 )
 Likelihood ratio test= 28.78  on 6 df,   p=7e-05
 Wald test            = 29.29  on 6 df,   p=5e-05
 Score (logrank) test = 34.44  on 6 df,   p=6e-06
@@ -2408,8 +2338,7 @@ stageiii            7.2209    0.13849    0.9346    55.790
 stageiv            15.7846    0.06335    2.0206   123.307
 age_at_diagnosis    1.0001    0.99994    1.0000     1.000
 
-Concordance= 0.761  (se = 0.058 )
-Rsquare= 0.143   (max possible= 0.817 )
+Concordance= 0.761  (se = 0.049 )
 Likelihood ratio test= 25.3  on 6 df,   p=3e-04
 Wald test            = 21.89  on 6 df,   p=0.001
 Score (logrank) test = 27.78  on 6 df,   p=1e-04
@@ -2440,8 +2369,7 @@ stageiii            2.5978    0.38494    0.7989     8.447
 stageiv            11.2064    0.08923    2.8634    43.858
 age_at_diagnosis    1.0001    0.99987    1.0000     1.000
 
-Concordance= 0.723  (se = 0.056 )
-Rsquare= 0.145   (max possible= 0.834 )
+Concordance= 0.723  (se = 0.049 )
 Likelihood ratio test= 25.83  on 6 df,   p=2e-04
 Wald test            = 27.67  on 6 df,   p=1e-04
 Score (logrank) test = 33.03  on 6 df,   p=1e-05
@@ -2472,8 +2400,7 @@ stageiii         4.226e+00  2.367e-01    0.9476     18.84
 stageiv          1.440e+01  6.945e-02    3.3574     61.76
 age_at_diagnosis 1.000e+00  1.000e+00    1.0000      1.00
 
-Concordance= 0.757  (se = 0.044 )
-Rsquare= 0.169   (max possible= 0.903 )
+Concordance= 0.757  (se = 0.035 )
 Likelihood ratio test= 39.01  on 6 df,   p=7e-07
 Wald test            = 33.5  on 6 df,   p=8e-06
 Score (logrank) test = 48.7  on 6 df,   p=9e-09
@@ -2504,8 +2431,7 @@ stageiii            4.1011    0.24384    0.8928    18.838
 stageiv            17.7560    0.05632    3.9380    80.059
 age_at_diagnosis    1.0001    0.99990    1.0000     1.000
 
-Concordance= 0.755  (se = 0.05 )
-Rsquare= 0.16   (max possible= 0.859 )
+Concordance= 0.755  (se = 0.044 )
 Likelihood ratio test= 33.78  on 6 df,   p=7e-06
 Wald test            = 34.75  on 6 df,   p=5e-06
 Score (logrank) test = 43.55  on 6 df,   p=9e-08
@@ -2536,8 +2462,7 @@ stageiii            2.5580     0.3909   0.84231     7.768
 stageiv             8.5704     0.1167   2.87862    25.516
 age_at_diagnosis    1.0001     0.9999   1.00001     1.000
 
-Concordance= 0.717  (se = 0.044 )
-Rsquare= 0.137   (max possible= 0.894 )
+Concordance= 0.717  (se = 0.041 )
 Likelihood ratio test= 31.99  on 6 df,   p=2e-05
 Wald test            = 34.06  on 6 df,   p=7e-06
 Score (logrank) test = 41.26  on 6 df,   p=3e-07
@@ -2568,8 +2493,7 @@ stageiii            3.8885    0.25717    1.0618    14.240
 stageiv            11.0204    0.09074    2.9402    41.307
 age_at_diagnosis    1.0001    0.99989    1.0000     1.000
 
-Concordance= 0.738  (se = 0.055 )
-Rsquare= 0.142   (max possible= 0.835 )
+Concordance= 0.738  (se = 0.049 )
 Likelihood ratio test= 26.6  on 6 df,   p=2e-04
 Wald test            = 25.81  on 6 df,   p=2e-04
 Score (logrank) test = 30.75  on 6 df,   p=3e-05
@@ -2600,8 +2524,7 @@ stageiii            2.3674     0.4224    0.7556     7.417
 stageiv             8.0706     0.1239    2.6165    24.893
 age_at_diagnosis    1.0001     0.9999    1.0000     1.000
 
-Concordance= 0.716  (se = 0.045 )
-Rsquare= 0.122   (max possible= 0.898 )
+Concordance= 0.716  (se = 0.042 )
 Likelihood ratio test= 27.78  on 6 df,   p=1e-04
 Wald test            = 30.96  on 6 df,   p=3e-05
 Score (logrank) test = 37.53  on 6 df,   p=1e-06
@@ -2632,8 +2555,7 @@ stageiii         3.063e+00  3.265e-01    0.8833    10.620
 stageiv          9.394e+00  1.064e-01    2.7695    31.866
 age_at_diagnosis 1.000e+00  9.999e-01    1.0000     1.000
 
-Concordance= 0.735  (se = 0.043 )
-Rsquare= 0.159   (max possible= 0.914 )
+Concordance= 0.735  (se = 0.038 )
 Likelihood ratio test= 36.23  on 6 df,   p=2e-06
 Wald test            = 30.22  on 6 df,   p=4e-05
 Score (logrank) test = 42.08  on 6 df,   p=2e-07
@@ -2664,8 +2586,7 @@ stageiii            4.5760    0.21853    1.0157    20.615
 stageiv            12.3397    0.08104    2.7594    55.181
 age_at_diagnosis    1.0001    0.99992    1.0000     1.000
 
-Concordance= 0.729  (se = 0.049 )
-Rsquare= 0.12   (max possible= 0.873 )
+Concordance= 0.729  (se = 0.045 )
 Likelihood ratio test= 25.1  on 6 df,   p=3e-04
 Wald test            = 24.19  on 6 df,   p=5e-04
 Score (logrank) test = 29.67  on 6 df,   p=5e-05
@@ -2696,8 +2617,7 @@ stageiii            3.3488     0.2986    0.9733    11.522
 stageiv             8.9860     0.1113    2.5305    31.910
 age_at_diagnosis    1.0001     0.9999    1.0000     1.000
 
-Concordance= 0.686  (se = 0.046 )
-Rsquare= 0.122   (max possible= 0.901 )
+Concordance= 0.686  (se = 0.045 )
 Likelihood ratio test= 25.16  on 6 df,   p=3e-04
 Wald test            = 25  on 6 df,   p=3e-04
 Score (logrank) test = 27.89  on 6 df,   p=1e-04
@@ -2728,8 +2648,7 @@ stageiii            4.2641     0.2345    1.2505    14.540
 stageiv             7.6578     0.1306    2.1454    27.334
 age_at_diagnosis    1.0001     0.9999    1.0000     1.000
 
-Concordance= 0.725  (se = 0.045 )
-Rsquare= 0.158   (max possible= 0.9 )
+Concordance= 0.725  (se = 0.04 )
 Likelihood ratio test= 34.13  on 6 df,   p=6e-06
 Wald test            = 29.52  on 6 df,   p=5e-05
 Score (logrank) test = 34.3  on 6 df,   p=6e-06
@@ -2760,8 +2679,7 @@ stageiii         3.304e+00  3.027e-01    0.9274    11.770
 stageiv          1.085e+01  9.214e-02    3.1345    37.575
 age_at_diagnosis 1.000e+00  9.999e-01    1.0000     1.000
 
-Concordance= 0.727  (se = 0.045 )
-Rsquare= 0.152   (max possible= 0.884 )
+Concordance= 0.727  (se = 0.04 )
 Likelihood ratio test= 35.07  on 6 df,   p=4e-06
 Wald test            = 25.74  on 6 df,   p=2e-04
 Score (logrank) test = 39.92  on 6 df,   p=5e-07
@@ -2792,8 +2710,7 @@ stageiii            2.3207     0.4309    0.7514     7.167
 stageiv             8.3687     0.1195    2.7729    25.257
 age_at_diagnosis    1.0001     0.9999    1.0000     1.000
 
-Concordance= 0.734  (se = 0.047 )
-Rsquare= 0.142   (max possible= 0.876 )
+Concordance= 0.734  (se = 0.042 )
 Likelihood ratio test= 32.23  on 6 df,   p=1e-05
 Wald test            = 35.04  on 6 df,   p=4e-06
 Score (logrank) test = 42.96  on 6 df,   p=1e-07
@@ -2824,8 +2741,7 @@ stageiii            8.8023    0.11361    1.1071    69.985
 stageiv            24.9632    0.04006    3.1773   196.130
 age_at_diagnosis    1.0001    0.99986    1.0001     1.000
 
-Concordance= 0.762  (se = 0.05 )
-Rsquare= 0.189   (max possible= 0.881 )
+Concordance= 0.762  (se = 0.041 )
 Likelihood ratio test= 37.5  on 6 df,   p=1e-06
 Wald test            = 32.2  on 6 df,   p=1e-05
 Score (logrank) test = 39.29  on 6 df,   p=6e-07
@@ -2856,8 +2772,7 @@ stageiii           13.3790    0.07474   1.77754   100.700
 stageiv            36.9965    0.02703   4.88410   280.244
 age_at_diagnosis    1.0001    0.99988   1.00005     1.000
 
-Concordance= 0.801  (se = 0.044 )
-Rsquare= 0.239   (max possible= 0.902 )
+Concordance= 0.801  (se = 0.028 )
 Likelihood ratio test= 57.31  on 6 df,   p=2e-10
 Wald test            = 45.82  on 6 df,   p=3e-08
 Score (logrank) test = 62.23  on 6 df,   p=2e-11
@@ -2888,19 +2803,18 @@ stageiii            1.9949     0.5013   0.63192     6.297
 stageiv             5.1721     0.1933   1.70561    15.684
 age_at_diagnosis    1.0001     0.9999   1.00000     1.000
 
-Concordance= 0.696  (se = 0.046 )
-Rsquare= 0.101   (max possible= 0.874 )
+Concordance= 0.696  (se = 0.043 )
 Likelihood ratio test= 23.1  on 6 df,   p=8e-04
 Wald test            = 23.94  on 6 df,   p=5e-04
 Score (logrank) test = 27.73  on 6 df,   p=1e-04
 
 Warning messages:
 1: In fitter(X, Y, strats, offset, init, control, weights = weights,  :
-  Loglik converged before variable  1 ; beta may be infinite. 
+  Loglik converged before variable  1 ; coefficient may be infinite. 
 2: In fitter(X, Y, strats, offset, init, control, weights = weights,  :
-  Loglik converged before variable  1 ; beta may be infinite. 
+  Loglik converged before variable  1 ; coefficient may be infinite. 
 3: In fitter(X, Y, strats, offset, init, control, weights = weights,  :
-  Loglik converged before variable  1 ; beta may be infinite. 
+  Loglik converged before variable  1 ; coefficient may be infinite. 
 > 
 > 
 > colnames(cox_surv_ct2)  = c('n', 'nevent',  "NLow",
@@ -2920,7 +2834,7 @@ T cells regulatory (Tregs)   194     42   NA  -0.18849883 8.282015e-01
 T cells gamma delta          217     51   NA  -0.29871523 7.417706e-01
 NK cells resting             173     36   NA  -0.49000765 6.126217e-01
 NK cells activated           213     52   NA   0.04389104 1.044869e+00
-Monocytes                    209     54   NA -17.19266122 3.414461e-08
+Monocytes                    209     54   NA -17.19266121 3.414461e-08
 Macrophages M1               196     45   NA  -0.36711946 6.927269e-01
 Macrophages M2               193     49   NA   0.20211890 1.223994e+00
 Dendritic cells resting      198     48   NA  -1.03599524 3.548730e-01
@@ -2937,22 +2851,45 @@ T cells CD8                     0.3657338  1.808404233 0.07054361
 T cells CD4 naive               0.7545276  0.711811869 0.47658128
 T cells CD4 memory resting      0.4231175  1.172179948 0.24112482
 T cells CD4 memory activated    0.3967202 -0.212265676 0.83189977
-T cells follicular helper    4349.2708680 -0.004033603 0.99678166
+T cells follicular helper    4349.2708685 -0.004033603 0.99678166
 T cells regulatory (Tregs)      0.3448327 -0.546638446 0.58462715
 T cells gamma delta             1.0346043 -0.288724122 0.77279250
 NK cells resting                0.3646475 -1.343784347 0.17901813
 NK cells activated              0.7461378  0.058824310 0.95309205
-Monocytes                    3755.5176891 -0.004577974 0.99634732
+Monocytes                    3755.5176787 -0.004577974 0.99634732
 Macrophages M1                  0.4489946 -0.817647736 0.41355836
 Macrophages M2                  0.2963914  0.681932427 0.49528168
 Dendritic cells resting         0.6027242 -1.718854534 0.08564086
-Dendritic cells activated    4262.7963980 -0.003980163 0.99682430
+Dendritic cells activated    4262.7963934 -0.003980163 0.99682430
 Mast cells resting              0.6049447 -0.294458721 0.76840740
 Mast cells activated            0.3163855  0.691269081 0.48939646
 Eosinophils                     1.0388095 -1.197859931 0.23097155
 Neutrophils                     1.0216277 -0.789160883 0.43001798
 > 
+> 
+> ## --------------------------------------------------------
+> ## C-index for macrophage M1
+> ## --------------------------------------------------------
+> 
+> func1 <- function(nsim, ctD, clinic_dat){
++   set.seed(2018 + nsim)
++   n = length(ctD)
++   samTrain = sample(n, size=round(n*0.7))
++   samTest  = setdiff(1:n, samTrain)
++   fit1 = coxph(Surv(surv_time, death) ~ ctD[samTrain], 
++                data=clinic_dat[samTrain,])
++   return(summary(fit1)$concordance[1])
++ }
+> 
+> Cindex = sapply(1:100, func1, CTcomp[, "Macrophages M1"], clinic_dat)
+> save(Cindex, file ="../data/M1_cstat.Rdata")
+> pdf("../figures/C-index for log ratio Macrophages M1.pdf")
+> boxplot(Cindex, xlab = "Macrophages M1", ylab = "C-statistics")
+> dev.off()
+null device 
+          1 
+> 
 > q("no")
 > proc.time()
    user  system elapsed 
-  1.786   0.156   1.951 
+  2.800   0.206   3.268 

@@ -4,7 +4,7 @@ library(ggplot2)
 library(ape)
 library(geiger)
 library(coxme)
-source("Unifrac_dist.R")
+source("../R_batch1/Unifrac_dist.R")
 
 kernel_tree <- function(distance, k, sigma){
   mu = apply(distance, 2, function(x) mean(sort(x)[1:k+1]))
@@ -60,10 +60,12 @@ func1 <- function(nsim, n, dA, K1){
   #return(list(Cs = sfit3$concordance[1], sigmas = sigmas))
 }
 
+
 # ----------------------------------------------------------------------
 # read in CIBERSORT output and clinic data 
 # ----------------------------------------------------------------------
-tree1 = read.tree(file="../data/immune_cell_lineage_tree_434_gene_22ct.tre")
+## change it to 12 cell type
+tree1 = read.tree(file="/fh/fast/sun_w/licai/COAD/data_lineage_dist/immune_cell_lineage_tree_cor_434_gene.tre")
 tree1$edge.length
 
 ks = 40
@@ -75,7 +77,7 @@ alphas = 0.5
 cf = "../data/COAD_composition.txt"
 
 datC = read.table(cf, header = T, as.is = T, row.names = 1, sep='\t',
-                    check.names=FALSE)
+                  check.names=FALSE)
 rownames(datC) = sub("^X", "", rownames(datC))
 dim(datC)
 
@@ -97,7 +99,7 @@ sam = match(rownames(datC),clinic_dat$participant)
 if(anyNA(sam)){
   stop('clinical data does not match with CIBERSOR output')
 }
-  
+
 dA = cbind(datC, clinic_dat[sam, c("surv_time", "death",'stage',
                                    "diagnoses.age_at_diagnosis",
                                    'demographic.gender', 'participant')])
@@ -114,6 +116,8 @@ Cs = array(NA, dim = c(nsim, length(ks) * length(sigmas), length(alphas) + 1),
 # L2 distance
 datC = datC[dA$participant, ]
 table(rownames(datC) == dA$participant )
+datC = CellType12(datC)
+dim(datC)
 apply(datC, 2, function(x) sum(x ==0))
 
 distance  = as.matrix(dist(datC))
@@ -139,7 +143,7 @@ K1 = exp(-distance)
 expDl2 = sapply(1:nsim, func1, n = n, dA = dA, K1 =  K1)
 
 # GUniFrac distance
-datP = NodeProp22(datC, tree1)  #for 22 cell types
+datP = NodeProp(datC, tree1)  #for 12 cell types
 D0.5 = GUniFrac(datP, tree1, alpha = 0.5)
 D0.5[1:5, 1:5]
 
@@ -166,9 +170,8 @@ expD.5 = sapply(1:nsim, func1, n = n, dA = dA, K1 =  K1)
 Kcor = cor((t(datC) + 1)/2)
 corrC = sapply(1:nsim, func1, n = n, dA = dA, K1 =  Kcor)
 
-save(Cs, expDl2, expD.5, corrC,  file = '../data/cstats.Rdata' )
-load("../data/cstats.Rdata")
-load("../data/M1_cstat.Rdata")
+save(Cs, expDl2, expD.5, corrC, file = '../data/cstats_12ct.Rdata' )
+# load("../data/cstats_12ct.Rdata")
 
 library(reshape2)
 library(ggplot2)
@@ -180,22 +183,20 @@ levels(Cs2$Distance) = c("GUniFrac(0.5)", "Euclidean")
 levels(Cs2$kernels) <- paste0('GK(', sub("_", ',', levels(Cs2$kernels) ), ')')
 
 expDl2 = cbind('kernels' = "exp(-D)", 'Distance' = 'Euclidean', 
-              'C-statistics' = expDl2)
+               'C-statistics' = expDl2)
 expD.5 = cbind('kernels' = "exp(-D)", 'Distance' = 'GUniFrac(0.5)', 
                'C-statistics' = expD.5)
 corrC = cbind('kernels' = "correlation", 'Distance' = 'correlation', 
-               'C-statistics' = corrC)
-M1   = cbind('kernels' = "Macrophages M1", 'Distance' = 'Macrophages M1', 
-              'C-statistics' = Cindex)
+              'C-statistics' = corrC)
 
-Cs3 = rbind(Cs2, expD.5, expDl2, corrC, M1)
-Cs3$`C-statistics` = round(as.numeric(Cs3$`C-statistics`),2)
+Cs3 = rbind(Cs2, expD.5, expDl2, corrC)
+Cs3$`C-statistics` = as.numeric(Cs3$`C-statistics`)
 
 scaleFUN = scaleFUN <- function(x) sprintf("%.1f", x)
-
-pdf(paste0('../figures/coxME_survival_COAD.pdf'), height = 4.5, width = 4.5)
+pdf(paste0('../figures/coxME_survival_COAD_12ct.pdf'), height = 4.5, width = 4.5)
 ggplot(data = Cs3, aes(x = Distance, y = `C-statistics`)) + 
   geom_boxplot(aes(fill=kernels)) +
+  guides(fill=guide_legend(nrow=2,byrow=TRUE)) +
   theme(legend.position ='top') + 
   scale_fill_discrete(name = 'kernels') +
   scale_y_continuous(labels=scaleFUN)

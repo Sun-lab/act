@@ -70,8 +70,19 @@ mixture_file = '../data/expresssion_COAD_data.txt'
 X = read.table(sig_matrix,header=T,sep="\t",row.names=1,check.names=F)
 Y = read.table(mixture_file, header=T, sep="\t", row.names=1,check.names=F)
 
+dim(X)
+dim(Y)
+X[1:2,1:3]
+Y[1:2,1:3]
+
+Xgns = row.names(X)
+Ygns = row.names(Y)
+genes = sort(intersect(Xgns, Ygns))
+length(genes)
+
 lm22.ori = CiberRun(X, Y, QN = F)
 lm22.ori[1:5,1:5]
+
 write.table(lm22.ori, file = "../data/COAD_composition.txt", 
             append = FALSE,quote = FALSE, 
             sep = "\t", row.names = TRUE, col.names = TRUE)

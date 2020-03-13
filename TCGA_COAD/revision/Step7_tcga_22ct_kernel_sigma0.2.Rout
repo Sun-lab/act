@@ -1,0 +1,356 @@
+
+R version 3.3.3 (2017-03-06) -- "Another Canoe"
+Copyright (C) 2017 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> rm(list = ls())
+> setwd("/fh/fast/sun_w/licai/_Cancer/data_immu")
+> source("/fh/fast/sun_w/licai/COAD/R_batch5/Unifrac_dist.R")
+> library(ggplot2)
+> library(ape)
+> library(geiger)
+> library(vegan)
+Loading required package: permute
+Loading required package: lattice
+This is vegan 2.5-4
+> 
+> # alpha = 0.3 
+> a = 0.5
+> # distance
+> k = 40
+> sigma = 0.2 #0.25 #0.5 #
+> 
+> outdir = paste0("/fh/fast/sun_w/licai/COAD/data_lineage_dist/tcga/maf005/revision/k"
++                 ,k,"sigma",sigma)
+> system(sprintf("mkdir -p %s", outdir))
+> 
+> source("/fh/fast/sun_w/licai/COAD/R_batch5/microbiomeGWAS-master/microbiomeGWAS.R")
+> 
+> packageDir = ('/fh/fast/sun_w/licai/COAD/R_batch5/microbiomeGWAS-master')
+> setwd(packageDir)
+> system(paste0('cd ', packageDir, '; sh compile.src.sh'))
+gcc -I/app/easybuild/software/R/3.3.3-foss-2016b-fh2/lib/R/include -DNDEBUG  -I/app/easybuild/software/OpenBLAS/0.2.18-GCC-5.4.0-2.26-LAPACK-3.6.1/include -I/app/easybuild/software/ScaLAPACK/2.0.2-gompi-2016b-OpenBLAS-0.2.18-LAPACK-3.6.1/include -I/app/easybuild/software/FFTW/3.3.4-gompi-2016b/include -I/app/easybuild/software/libreadline/6.3-foss-2016b/include -I/app/easybuild/software/ncurses/6.0-foss-2016b/include -I/app/easybuild/software/bzip2/1.0.6-foss-2016b/include -I/app/easybuild/software/XZ/5.2.2-foss-2016b/include -I/app/easybuild/software/zlib/1.2.8-foss-2016b/include -I/app/easybuild/software/SQLite/3.13.0-foss-2016b/include -I/app/easybuild/software/PCRE/8.38-foss-2016b/include -I/app/easybuild/software/libpng/1.6.24-foss-2016b/include -I/app/easybuild/software/libjpeg-turbo/1.5.0-foss-2016b/include -I/app/easybuild/software/LibTIFF/4.0.6-foss-2016b/include -I/app/easybuild/software/Java/1.8.0_92/include -I/app/easybuild/software/Tcl/8.6.5-foss-2016b/include -I/app/easybuild/software/Tk/8.6.5-foss-2016b/include -I/app/easybuild/software/cURL/7.49.1-foss-2016b/include -I/app/easybuild/software/libxml2/2.9.4-foss-2016b/include -I/app/easybuild/software/X11/20160819-foss-2016b/include -I/app/easybuild/software/GMP/6.1.1-foss-2016b/include -I/app/easybuild/software/JAGS/4.2.0-foss-2016b/include    -fpic  -O2 -march=native  -c dExp1.c -o dExp1.o
+gcc -shared -L/app/easybuild/software/R/3.3.3-foss-2016b-fh2/lib/R/lib -L/app/easybuild/software/GCCcore/5.4.0/lib64 -L/app/easybuild/software/GCCcore/5.4.0/lib -L/app/easybuild/software/OpenBLAS/0.2.18-GCC-5.4.0-2.26-LAPACK-3.6.1/lib -L/app/easybuild/software/ScaLAPACK/2.0.2-gompi-2016b-OpenBLAS-0.2.18-LAPACK-3.6.1/lib -L/app/easybuild/software/FFTW/3.3.4-gompi-2016b/lib -L/app/easybuild/software/libreadline/6.3-foss-2016b/lib -L/app/easybuild/software/ncurses/6.0-foss-2016b/lib -L/app/easybuild/software/bzip2/1.0.6-foss-2016b/lib -L/app/easybuild/software/XZ/5.2.2-foss-2016b/lib -L/app/easybuild/software/zlib/1.2.8-foss-2016b/lib -L/app/easybuild/software/SQLite/3.13.0-foss-2016b/lib -L/app/easybuild/software/PCRE/8.38-foss-2016b/lib -L/app/easybuild/software/libpng/1.6.24-foss-2016b/lib -L/app/easybuild/software/libjpeg-turbo/1.5.0-foss-2016b/lib -L/app/easybuild/software/LibTIFF/4.0.6-foss-2016b/lib -L/app/easybuild/software/Java/1.8.0_92/lib -L/app/easybuild/software/Tcl/8.6.5-foss-2016b/lib -L/app/easybuild/software/Tk/8.6.5-foss-2016b/lib -L/app/easybuild/software/cURL/7.49.1-foss-2016b/lib -L/app/easybuild/software/libxml2/2.9.4-foss-2016b/lib -L/app/easybuild/software/X11/20160819-foss-2016b/lib -L/app/easybuild/software/GMP/6.1.1-foss-2016b/lib -L/app/easybuild/software/JAGS/4.2.0-foss-2016b/lib -o dExp1.so dExp1.o -L/app/easybuild/software/R/3.3.3-foss-2016b-fh2/lib/R/lib -lR
+gcc -I/app/easybuild/software/R/3.3.3-foss-2016b-fh2/lib/R/include -DNDEBUG  -I/app/easybuild/software/OpenBLAS/0.2.18-GCC-5.4.0-2.26-LAPACK-3.6.1/include -I/app/easybuild/software/ScaLAPACK/2.0.2-gompi-2016b-OpenBLAS-0.2.18-LAPACK-3.6.1/include -I/app/easybuild/software/FFTW/3.3.4-gompi-2016b/include -I/app/easybuild/software/libreadline/6.3-foss-2016b/include -I/app/easybuild/software/ncurses/6.0-foss-2016b/include -I/app/easybuild/software/bzip2/1.0.6-foss-2016b/include -I/app/easybuild/software/XZ/5.2.2-foss-2016b/include -I/app/easybuild/software/zlib/1.2.8-foss-2016b/include -I/app/easybuild/software/SQLite/3.13.0-foss-2016b/include -I/app/easybuild/software/PCRE/8.38-foss-2016b/include -I/app/easybuild/software/libpng/1.6.24-foss-2016b/include -I/app/easybuild/software/libjpeg-turbo/1.5.0-foss-2016b/include -I/app/easybuild/software/LibTIFF/4.0.6-foss-2016b/include -I/app/easybuild/software/Java/1.8.0_92/include -I/app/easybuild/software/Tcl/8.6.5-foss-2016b/include -I/app/easybuild/software/Tk/8.6.5-foss-2016b/include -I/app/easybuild/software/cURL/7.49.1-foss-2016b/include -I/app/easybuild/software/libxml2/2.9.4-foss-2016b/include -I/app/easybuild/software/X11/20160819-foss-2016b/include -I/app/easybuild/software/GMP/6.1.1-foss-2016b/include -I/app/easybuild/software/JAGS/4.2.0-foss-2016b/include    -fpic  -O2 -march=native  -c dExp2.c -o dExp2.o
+gcc -shared -L/app/easybuild/software/R/3.3.3-foss-2016b-fh2/lib/R/lib -L/app/easybuild/software/GCCcore/5.4.0/lib64 -L/app/easybuild/software/GCCcore/5.4.0/lib -L/app/easybuild/software/OpenBLAS/0.2.18-GCC-5.4.0-2.26-LAPACK-3.6.1/lib -L/app/easybuild/software/ScaLAPACK/2.0.2-gompi-2016b-OpenBLAS-0.2.18-LAPACK-3.6.1/lib -L/app/easybuild/software/FFTW/3.3.4-gompi-2016b/lib -L/app/easybuild/software/libreadline/6.3-foss-2016b/lib -L/app/easybuild/software/ncurses/6.0-foss-2016b/lib -L/app/easybuild/software/bzip2/1.0.6-foss-2016b/lib -L/app/easybuild/software/XZ/5.2.2-foss-2016b/lib -L/app/easybuild/software/zlib/1.2.8-foss-2016b/lib -L/app/easybuild/software/SQLite/3.13.0-foss-2016b/lib -L/app/easybuild/software/PCRE/8.38-foss-2016b/lib -L/app/easybuild/software/libpng/1.6.24-foss-2016b/lib -L/app/easybuild/software/libjpeg-turbo/1.5.0-foss-2016b/lib -L/app/easybuild/software/LibTIFF/4.0.6-foss-2016b/lib -L/app/easybuild/software/Java/1.8.0_92/lib -L/app/easybuild/software/Tcl/8.6.5-foss-2016b/lib -L/app/easybuild/software/Tk/8.6.5-foss-2016b/lib -L/app/easybuild/software/cURL/7.49.1-foss-2016b/lib -L/app/easybuild/software/libxml2/2.9.4-foss-2016b/lib -L/app/easybuild/software/X11/20160819-foss-2016b/lib -L/app/easybuild/software/GMP/6.1.1-foss-2016b/lib -L/app/easybuild/software/JAGS/4.2.0-foss-2016b/lib -o dExp2.so dExp2.o -L/app/easybuild/software/R/3.3.3-foss-2016b-fh2/lib/R/lib -lR
+gcc -I/app/easybuild/software/R/3.3.3-foss-2016b-fh2/lib/R/include -DNDEBUG  -I/app/easybuild/software/OpenBLAS/0.2.18-GCC-5.4.0-2.26-LAPACK-3.6.1/include -I/app/easybuild/software/ScaLAPACK/2.0.2-gompi-2016b-OpenBLAS-0.2.18-LAPACK-3.6.1/include -I/app/easybuild/software/FFTW/3.3.4-gompi-2016b/include -I/app/easybuild/software/libreadline/6.3-foss-2016b/include -I/app/easybuild/software/ncurses/6.0-foss-2016b/include -I/app/easybuild/software/bzip2/1.0.6-foss-2016b/include -I/app/easybuild/software/XZ/5.2.2-foss-2016b/include -I/app/easybuild/software/zlib/1.2.8-foss-2016b/include -I/app/easybuild/software/SQLite/3.13.0-foss-2016b/include -I/app/easybuild/software/PCRE/8.38-foss-2016b/include -I/app/easybuild/software/libpng/1.6.24-foss-2016b/include -I/app/easybuild/software/libjpeg-turbo/1.5.0-foss-2016b/include -I/app/easybuild/software/LibTIFF/4.0.6-foss-2016b/include -I/app/easybuild/software/Java/1.8.0_92/include -I/app/easybuild/software/Tcl/8.6.5-foss-2016b/include -I/app/easybuild/software/Tk/8.6.5-foss-2016b/include -I/app/easybuild/software/cURL/7.49.1-foss-2016b/include -I/app/easybuild/software/libxml2/2.9.4-foss-2016b/include -I/app/easybuild/software/X11/20160819-foss-2016b/include -I/app/easybuild/software/GMP/6.1.1-foss-2016b/include -I/app/easybuild/software/JAGS/4.2.0-foss-2016b/include    -fpic  -O2 -march=native  -c parsePlink.c -o parsePlink.o
+gcc -shared -L/app/easybuild/software/R/3.3.3-foss-2016b-fh2/lib/R/lib -L/app/easybuild/software/GCCcore/5.4.0/lib64 -L/app/easybuild/software/GCCcore/5.4.0/lib -L/app/easybuild/software/OpenBLAS/0.2.18-GCC-5.4.0-2.26-LAPACK-3.6.1/lib -L/app/easybuild/software/ScaLAPACK/2.0.2-gompi-2016b-OpenBLAS-0.2.18-LAPACK-3.6.1/lib -L/app/easybuild/software/FFTW/3.3.4-gompi-2016b/lib -L/app/easybuild/software/libreadline/6.3-foss-2016b/lib -L/app/easybuild/software/ncurses/6.0-foss-2016b/lib -L/app/easybuild/software/bzip2/1.0.6-foss-2016b/lib -L/app/easybuild/software/XZ/5.2.2-foss-2016b/lib -L/app/easybuild/software/zlib/1.2.8-foss-2016b/lib -L/app/easybuild/software/SQLite/3.13.0-foss-2016b/lib -L/app/easybuild/software/PCRE/8.38-foss-2016b/lib -L/app/easybuild/software/libpng/1.6.24-foss-2016b/lib -L/app/easybuild/software/libjpeg-turbo/1.5.0-foss-2016b/lib -L/app/easybuild/software/LibTIFF/4.0.6-foss-2016b/lib -L/app/easybuild/software/Java/1.8.0_92/lib -L/app/easybuild/software/Tcl/8.6.5-foss-2016b/lib -L/app/easybuild/software/Tk/8.6.5-foss-2016b/lib -L/app/easybuild/software/cURL/7.49.1-foss-2016b/lib -L/app/easybuild/software/libxml2/2.9.4-foss-2016b/lib -L/app/easybuild/software/X11/20160819-foss-2016b/lib -L/app/easybuild/software/GMP/6.1.1-foss-2016b/lib -L/app/easybuild/software/JAGS/4.2.0-foss-2016b/lib -o parsePlink.so parsePlink.o -L/app/easybuild/software/R/3.3.3-foss-2016b-fh2/lib/R/lib -lR
+gcc -I/app/easybuild/software/R/3.3.3-foss-2016b-fh2/lib/R/include -DNDEBUG  -I/app/easybuild/software/OpenBLAS/0.2.18-GCC-5.4.0-2.26-LAPACK-3.6.1/include -I/app/easybuild/software/ScaLAPACK/2.0.2-gompi-2016b-OpenBLAS-0.2.18-LAPACK-3.6.1/include -I/app/easybuild/software/FFTW/3.3.4-gompi-2016b/include -I/app/easybuild/software/libreadline/6.3-foss-2016b/include -I/app/easybuild/software/ncurses/6.0-foss-2016b/include -I/app/easybuild/software/bzip2/1.0.6-foss-2016b/include -I/app/easybuild/software/XZ/5.2.2-foss-2016b/include -I/app/easybuild/software/zlib/1.2.8-foss-2016b/include -I/app/easybuild/software/SQLite/3.13.0-foss-2016b/include -I/app/easybuild/software/PCRE/8.38-foss-2016b/include -I/app/easybuild/software/libpng/1.6.24-foss-2016b/include -I/app/easybuild/software/libjpeg-turbo/1.5.0-foss-2016b/include -I/app/easybuild/software/LibTIFF/4.0.6-foss-2016b/include -I/app/easybuild/software/Java/1.8.0_92/include -I/app/easybuild/software/Tcl/8.6.5-foss-2016b/include -I/app/easybuild/software/Tk/8.6.5-foss-2016b/include -I/app/easybuild/software/cURL/7.49.1-foss-2016b/include -I/app/easybuild/software/libxml2/2.9.4-foss-2016b/include -I/app/easybuild/software/X11/20160819-foss-2016b/include -I/app/easybuild/software/GMP/6.1.1-foss-2016b/include -I/app/easybuild/software/JAGS/4.2.0-foss-2016b/include    -fpic  -O2 -march=native  -c parsePlink2.c -o parsePlink2.o
+gcc -shared -L/app/easybuild/software/R/3.3.3-foss-2016b-fh2/lib/R/lib -L/app/easybuild/software/GCCcore/5.4.0/lib64 -L/app/easybuild/software/GCCcore/5.4.0/lib -L/app/easybuild/software/OpenBLAS/0.2.18-GCC-5.4.0-2.26-LAPACK-3.6.1/lib -L/app/easybuild/software/ScaLAPACK/2.0.2-gompi-2016b-OpenBLAS-0.2.18-LAPACK-3.6.1/lib -L/app/easybuild/software/FFTW/3.3.4-gompi-2016b/lib -L/app/easybuild/software/libreadline/6.3-foss-2016b/lib -L/app/easybuild/software/ncurses/6.0-foss-2016b/lib -L/app/easybuild/software/bzip2/1.0.6-foss-2016b/lib -L/app/easybuild/software/XZ/5.2.2-foss-2016b/lib -L/app/easybuild/software/zlib/1.2.8-foss-2016b/lib -L/app/easybuild/software/SQLite/3.13.0-foss-2016b/lib -L/app/easybuild/software/PCRE/8.38-foss-2016b/lib -L/app/easybuild/software/libpng/1.6.24-foss-2016b/lib -L/app/easybuild/software/libjpeg-turbo/1.5.0-foss-2016b/lib -L/app/easybuild/software/LibTIFF/4.0.6-foss-2016b/lib -L/app/easybuild/software/Java/1.8.0_92/lib -L/app/easybuild/software/Tcl/8.6.5-foss-2016b/lib -L/app/easybuild/software/Tk/8.6.5-foss-2016b/lib -L/app/easybuild/software/cURL/7.49.1-foss-2016b/lib -L/app/easybuild/software/libxml2/2.9.4-foss-2016b/lib -L/app/easybuild/software/X11/20160819-foss-2016b/lib -L/app/easybuild/software/GMP/6.1.1-foss-2016b/lib -L/app/easybuild/software/JAGS/4.2.0-foss-2016b/lib -o parsePlink2.so parsePlink2.o -L/app/easybuild/software/R/3.3.3-foss-2016b-fh2/lib/R/lib -lR
+> 
+> sam2kp = read.csv( "/fh/fast/sun_w/licai/COAD/data_GWAS/tcga_gwas/sample2kp_dosageData.csv", header = F, as.is = T)$V1
+> nSam = length(sam2kp)
+> 
+> # ------------------------------------------------------------
+> #CaucasianOnly 
+> # ------------------------------------------------------------
+> tcga_pca2 = read.table("/fh/fast/sun_w/research/TCGA/COAD/QC_PCA/final_data2_CaucasianOnly_COAD.txt",
++                        sep = "\t", header = TRUE, as.is = TRUE)
+> dim(tcga_pca2)
+[1] 359  12
+> tcga_pca2[1:5, ]
+                       TCGA_ID
+1 TCGA-A6-2670-10A-01D-0819-01
+2 TCGA-A6-2671-10A-01D-1406-01
+3 TCGA-A6-2672-10A-01D-0824-01
+4 TCGA-A6-2674-10A-01D-0819-01
+5 TCGA-A6-2675-10A-01D-1717-01
+                                                  cel_files     noHM_PC1
+1      VENUE_p_TCGAb28_SNP_N_GenomeWideSNP_6_F11_568910.CEL -0.013925972
+2 FAMED_p_TCGAb66and76_SNP_N_GenomeWideSNP_6_E02_730006.CEL -0.009249593
+3 SCENA_p_TCGAb29and30_SNP_N_GenomeWideSNP_6_F07_569040.CEL -0.029457317
+4      VENUE_p_TCGAb28_SNP_N_GenomeWideSNP_6_E03_568892.CEL -0.027005863
+5    GRIPS_p_TCGA_b116_SNP_N_GenomeWideSNP_6_D03_781430.CEL  0.098222522
+      noHM_PC2     noHM_PC3     noHM_PC4    noHM_PC5     noHM_PC6     noHM_PC7
+1  0.011467491  0.004964584 0.0199928540 -0.05707810 -0.038209984 -0.028253014
+2  0.004130469  0.015622426 0.0032226720 -0.02884763  0.022578593 -0.042497864
+3 -0.010559315  0.003939198 0.0089461523  0.02576372 -0.020155345  0.009971436
+4 -0.016831758 -0.027757305 0.0190914144 -0.04933242  0.063496682  0.063601688
+5  0.023360098  0.040205444 0.0009877077  0.06261283 -0.001305643  0.070044522
+      noHM_PC8     noHM_PC9   noHM_PC10
+1 -0.024789448  0.002975205 -0.02002722
+2  0.042985739 -0.009349792  0.09630500
+3 -0.009824531 -0.062196589 -0.04275102
+4 -0.058795499  0.019370328  0.02235268
+5  0.065831037 -0.015614155  0.06671175
+> 
+> coad = read.table("/fh/fast/sun_w/research/TCGA/COAD/GDC/data/expression_v2_sample.txt", sep="\t",
++                   as.is=TRUE, header=TRUE)
+> dim(coad)
+[1] 450  47
+> coad[1:2,]
+                 analysis.submitter_id                 analysis.analysis_id
+1 171f6436-748a-4072-9ef6-e90d8cd9b465 31e9b072-09bb-4bd7-a8ca-6bbdccfc56f6
+2 97503aa9-93a5-4ff6-bb19-203ea235c2bf eb8e8c69-7402-4df8-bfbb-def75beaa8f5
+                             analysis.input_files.file_name
+1 76ffce10-7645-48aa-811f-214e9252c90d_gdc_realn_rehead.bam
+2 7632cc5b-45d4-4b71-b653-e2780b3fca81_gdc_realn_rehead.bam
+  analysis.input_files.file_size        associated_entities.entity_id
+1                     6960963367 0b0bbc77-a9f3-4298-ba21-587d10209b0b
+2                     3055359230 43310315-1797-422f-82d9-04be6f16225a
+           associated_entities.case_id associated_entities.entity_submitter_id
+1 6cd8d2dd-5545-43b0-b796-ae0506d62eb8            TCGA-A6-6650-01A-11R-1774-07
+2 d976782c-90c1-421d-b83c-7fc2617e2709            TCGA-A6-2677-01A-01R-0821-07
+  tss participant sample portion plate center
+1  A6        6650    01A     11R  1774      7
+2  A6        2677    01A     01R  0821      7
+                               case_id           demographic.demographic_id
+1 6cd8d2dd-5545-43b0-b796-ae0506d62eb8 e97aa7ba-4b50-59fa-b603-f7a9657229ac
+2 d976782c-90c1-421d-b83c-7fc2617e2709 0fa0b722-54aa-589a-ba12-11afe5060707
+   demographic.ethnicity demographic.gender          demographic.race
+1 not hispanic or latino             female black or african american
+2 not hispanic or latino             female                     white
+  demographic.submitter_id     demographic.updated_datetime
+1 TCGA-A6-6650_demographic 2016-05-16T10:54:04.193504-05:00
+2 TCGA-A6-2677_demographic 2016-05-16T10:55:38.818950-05:00
+  demographic.year_of_birth demographic.year_of_death
+1                      1941                        NA
+2                      1941                        NA
+  diagnoses.age_at_diagnosis diagnoses.classification_of_tumor
+1                      25516                      not reported
+2                      25143                      not reported
+  diagnoses.days_to_birth diagnoses.days_to_death
+1                  -25516                      NA
+2                  -25143                     740
+  diagnoses.days_to_last_follow_up               diagnoses.diagnosis_id
+1                              627 4a27df98-2f99-51e4-a0d8-f324ed8ea8bc
+2                              541 1b22285c-890a-5cb1-8a8b-5434ef479f18
+  diagnoses.last_known_disease_status diagnoses.morphology
+1                        not reported               8140/3
+2                        not reported               8140/3
+  diagnoses.primary_diagnosis diagnoses.prior_malignancy
+1                       c18.2               not reported
+2                       c18.2               not reported
+  diagnoses.progression_or_recurrence diagnoses.site_of_resection_or_biopsy
+1                        not reported                                 c18.2
+2                        not reported                                 c18.2
+  diagnoses.submitter_id diagnoses.tissue_or_organ_of_origin
+1 TCGA-A6-6650_diagnosis                               c18.2
+2 TCGA-A6-2677_diagnosis                               c18.2
+  diagnoses.tumor_grade diagnoses.tumor_stage       diagnoses.updated_datetime
+1          not reported             stage iia 2016-05-16T10:54:04.193504-05:00
+2          not reported            stage iiic 2016-05-16T10:55:38.818950-05:00
+  diagnoses.vital_status exposures.bmi                exposures.exposure_id
+1                  alive   0.003581862 2c815065-4a2b-5c7a-9872-06f8c85259fd
+2                   dead   0.002156250 59056466-cb70-5bd0-a6c1-dfedeae44d9c
+  exposures.height exposures.submitter_id       exposures.updated_datetime
+1            162.6  TCGA-A6-6650_exposure 2016-05-16T10:54:04.193504-05:00
+2            160.0  TCGA-A6-2677_exposure 2016-05-16T10:55:38.818950-05:00
+  exposures.weight bcr_patient_barcode
+1             94.7        TCGA-A6-6650
+2             55.2        TCGA-A6-2677
+> table(coad$demographic.race)
+
+american indian or alaska native                            asian 
+                               1                               11 
+       black or african american                     not reported 
+                              59                              170 
+                           white 
+                             209 
+> 
+> barcode = sapply(strsplit(tcga_pca2$TCGA_ID, "-" ), function(x) paste(x[1:3], collapse = '-')) 
+> 
+> coad = coad[match(sam2kp, coad$bcr_patient_barcode), ]
+> tcga_pca2 = tcga_pca2[match(sam2kp, barcode), ]
+> coad[1:5,47]
+[1] "TCGA-A6-2671" "TCGA-A6-2674" "TCGA-A6-2675" "TCGA-A6-2678" "TCGA-A6-2679"
+> tcga_pca2[1:5, 1]
+[1] "TCGA-A6-2671-10A-01D-1406-01" "TCGA-A6-2674-10A-01D-0819-01"
+[3] "TCGA-A6-2675-10A-01D-1717-01" "TCGA-A6-2678-10A-01D-0819-01"
+[5] "TCGA-A6-2679-10A-01D-1406-01"
+> 
+> # ------------------------------------------------------------
+> # covariates 
+> # ------------------------------------------------------------
+> adjustment_data = cbind(tcga_pca2[,c(paste0("noHM_PC", 1:4))], 
++                         coad[, c('diagnoses.age_at_diagnosis','bcr_patient_barcode')], 
++                         genderM = coad[,"demographic.gender"] == "male")
+> table(adjustment_data$genderM)
+
+FALSE  TRUE 
+  152   166 
+> table(coad[,'demographic.gender'])
+
+female   male 
+   152    166 
+> 
+> rownames(adjustment_data) = coad[,"participant"]
+> adjustment_data[1:5,]
+         noHM_PC1     noHM_PC2     noHM_PC3     noHM_PC4
+2671 -0.009249593  0.004130469  0.015622426 0.0032226720
+2674 -0.027005863 -0.016831758 -0.027757305 0.0190914144
+2675  0.098222522  0.023360098  0.040205444 0.0009877077
+2678 -0.030282958 -0.012259686 -0.004480849 0.0090161451
+2679 -0.018358115 -0.022296358 -0.011677011 0.0168677738
+     diagnoses.age_at_diagnosis bcr_patient_barcode genderM
+2671                      31329        TCGA-A6-2671    TRUE
+2674                      26292        TCGA-A6-2674    TRUE
+2675                      28813        TCGA-A6-2675    TRUE
+2678                      16030        TCGA-A6-2678   FALSE
+2679                      26820        TCGA-A6-2679   FALSE
+> dim(adjustment_data)
+[1] 318   7
+> 
+> # ------------------------------------------------------------
+> # Distance / corelation
+> # ------------------------------------------------------------
+> tree1 <-   read.tree(file = "/fh/fast/sun_w/licai/COAD/data_lineage_dist/immune_cell_lineage_tree_434_gene_22ct.tre")
+> tree1$edge.length
+ [1] 49.44844 41.79017 26.03457 26.03457 39.20485 39.20485 42.01849 34.51699
+ [9] 34.60476 39.24386 34.60476 34.51699 35.30971 35.30971 49.44844 36.87773
+[17] 27.15118 27.15118 36.87773 29.70260 29.77833 26.64979 26.64979 28.55149
+[25] 29.50465 30.19819 29.70260 41.82049 18.12484 18.12484 29.38553
+> 
+> datC = read.table(paste0("/fh/fast/sun_w/licai/_Cancer/data_immu/", 'COAD_composition.txt'),
++                   header = T, as.is = T, row.names = 1, sep='\t',
++                   check.names=FALSE)
+> rownames(datC) = sub("^X", "", rownames(datC))
+> datP = NodeProp22(datC, tree1)  #for 22 cell types
+> dG_E = GUniFrac(datP, tree1, alpha = a)
+> dim(dG_E)
+[1] 450 450
+> 
+> mu = apply(dG_E, 2, function(x) mean(sort(x)[1:k+1]))
+> epsilon = outer(mu, mu, '+') * sigma/2
+> dG_E = dG_E^2/(2 * epsilon^2)
+> 
+> # # renormalize
+> # DE = diag(1/sqrt(rowSums(dG_E)))
+> # dG_E = DE %*% dG_E %*% DE
+> # colnames(dG_E) = rownames(dG_E) = colnames(datE)
+> 
+> #correlation
+> dG_E <- dG_E[rownames(adjustment_data), rownames(adjustment_data)]
+> dim(dG_E)
+[1] 318 318
+> dG_E[1:5, 1:5]
+         2671     2674     2675     2678     2679
+2671  0.00000 16.51017 27.08375 40.83315 73.40455
+2674 16.51017  0.00000 25.96959 33.49728 45.82010
+2675 27.08375 25.96959  0.00000 18.58010 54.15436
+2678 40.83315 33.49728 18.58010  0.00000 22.45568
+2679 73.40455 45.82010 54.15436 22.45568  0.00000
+> 
+> # ------------------------------------------------------------
+> # adjust for covariates
+> # ------------------------------------------------------------
+> cov = c(paste0('noHM_PC', 1:4), "genderM", "diagnoses.age_at_diagnosis")
+> 
+> dataCovariate = adjustment_data[, cov]
+> distRes_E = distRes(dG_E, adjustment_data[, cov])
+> 
+> eD_E <- funED(dG_E, soFile1 = paste0(packageDir, "/lib/dExp1.so"), 
++               soFile2 = paste0(packageDir, "/lib/dExp2.so"))
+> 
+> library(Rmpi)
+> mpi.spawn.Rslaves(nslaves=mpi.universe.size() - 1)
+	19 slaves are spawned successfully. 0 failed.
+master  (rank 0 , comm 1) of size 20 is running on: gizmof87 
+slave1  (rank 1 , comm 1) of size 20 is running on: gizmof142 
+slave2  (rank 2 , comm 1) of size 20 is running on: gizmof148 
+slave3  (rank 3 , comm 1) of size 20 is running on: gizmof149 
+... ... ...
+slave18 (rank 18, comm 1) of size 20 is running on: gizmof362 
+slave19 (rank 19, comm 1) of size 20 is running on: gizmof363 
+> time.1 = proc.time()
+> 
+> for(chr1 in 22:1){
++   # load dosage data
++   cat('chromosome', chr1, date(), '\n')
++   
++   # maf 005 6 million snp
++   Maf = read.csv(paste0("/fh/fast/sun_w/licai/COAD/data_GWAS/tcga_gwas/maf/maf_chr", 
++                         chr1 , '.txt'), sep='\t' )
++   index = which(Maf$MAF >= 0.05 & Maf$MAF <= 1 - 0.05)
++   
++   
++   # genotype file and snpinfo
++   # genotype file
++   file = paste0("/fh/fast/sun_w/research/TCGA/COAD/GDC/data_geno/step12_get_dosage/dosage/chr",chr1,".rds")
++   dosage = readRDS(file)
++   
++   dosage_barcode <- sapply(strsplit(colnames(dosage), "-" ), function(x) paste(x[1:3], collapse = '-')) 
++   snp_info <- dosage[index, 1:5]
++   dosage <- dosage[index, match(sam2kp, dosage_barcode)]
++   #rownames(dosage) <- snp_info$rsid
++   dosage = data.matrix(dosage)
++   mafs = apply(dosage, 1, sum)/(2 *ncol(dosage)) 
++   
++   tasks = 40
++   groups = cut(1:nrow(dosage), breaks =tasks, include.lowest = T, labels = F)
++   dos = lapply(1:tasks, function(x) dosage[which(groups ==x),])
++   sapply(dos, dim)
++   rm(dosage)
++   gc()
++   
++   SM_E = NULL
++   for( d in 1:tasks){
++     SM2 = t(mpi.parApply(dos[[d]], 1,sm, distRes_E))
++     SM_E = c(SM_E, SM2)
++   }
++   
++   
++   eG = funEG(mafs)
++   
++   p_E = funMain(SM_E, dG_E, eD_E, eG)
++   
++   res_E = cbind(snp_info, p_E)
++   
++   write.table(res_E, 
++               file = paste0(outdir,'/microbiome_Gunifrac_k',k,'sigma',
++                             sigma,'_GWAS_cov_chr',
++                             chr1,'.txt'), quote = FALSE,
++               sep = "\t", row.names = FALSE, col.names = TRUE)
++ }
+chromosome 22 Mon Mar  2 20:44:35 2020 
+chromosome 21 Mon Mar  2 20:47:02 2020 
+chromosome 20 Mon Mar  2 20:49:33 2020 
+chromosome 19 Mon Mar  2 20:53:13 2020 
+chromosome 18 Mon Mar  2 20:57:02 2020 
+chromosome 17 Mon Mar  2 21:01:36 2020 
+chromosome 16 Mon Mar  2 21:06:03 2020 
+chromosome 15 Mon Mar  2 21:11:05 2020 
+chromosome 14 Mon Mar  2 21:15:49 2020 
+chromosome 13 Mon Mar  2 21:21:08 2020 
+chromosome 12 Mon Mar  2 21:27:02 2020 
+chromosome 11 Mon Mar  2 21:34:32 2020 
+chromosome 10 Mon Mar  2 21:42:30 2020 
+chromosome 9 Mon Mar  2 21:50:32 2020 
+chromosome 8 Mon Mar  2 21:57:35 2020 
+chromosome 7 Mon Mar  2 22:06:22 2020 
+chromosome 6 Mon Mar  2 22:15:40 2020 
+chromosome 5 Mon Mar  2 22:26:07 2020 
+chromosome 4 Mon Mar  2 22:36:08 2020 
+chromosome 3 Mon Mar  2 22:47:42 2020 
+chromosome 2 Mon Mar  2 22:59:02 2020 
+chromosome 1 Mon Mar  2 23:12:12 2020 
+There were 22 warnings (use warnings() to see them)
+> 
+> time.2 = proc.time()
+> mpi.close.Rslaves()
+[1] 1
+> time.2 - time.1
+    user   system  elapsed 
+5017.899 4161.849 9440.469 
+> 
+> mpi.exit()
+[1] "Detaching Rmpi. Rmpi cannot be used unless relaunching R."
+> 
+> q("no")
+> proc.time()
+    user   system  elapsed 
+5037.702 4162.607 9469.607 

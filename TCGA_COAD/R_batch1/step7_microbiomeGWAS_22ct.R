@@ -67,7 +67,6 @@ rownames(CTcomp) = gsub('^X', '', rownames(CTcomp))
 datP = NodeProp22(CTcomp, tree)
 dG_E <- GUniFrac(datP, tree, alpha = a)
 
-#correlation
 dG_E <- dG_E[rownames(adjustment_data), rownames(adjustment_data)]
 
 # ------------------------------------------------------------
